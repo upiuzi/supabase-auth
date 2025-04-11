@@ -131,13 +131,13 @@ const AIChatWidget = () => {
               <button
                 onClick={async () => {
                   try {
-                    await fetch('http://wagt.satcoconut.com/send', {
+                    await fetch('https://wagt.satcoconut.com/send', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
-                        sessionId: '1',
+                        sessionId: '6281122244446',
                         to: whatsappTo,
                         text: whatsappText
                       })

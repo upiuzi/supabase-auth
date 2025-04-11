@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test CORS for wagt.satcoconut.com</title>
+</head>
+<body>
+  <h1>Test CORS for wagt.satcoconut.com</h1>
+  <button id="testBtn">Test CORS</button>
+  <pre id="result"></pre>
+  <script>
+    document.getElementById('testBtn').onclick = async function() {
+      const result = document.getElementById('result');
+      result.textContent = 'Testing...';
+      try {
+        const response = await fetch('https://wagt.satcoconut.com/status');
+        const text = await response.text();
+        const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
+        result.textContent = 
+          'Status: ' + response.status + '\\n' +
+          'Access-Control-Allow-Origin: ' + allowOrigin + '\\n' +
+          'Response: ' + text;
+      } catch (err) {
+        result.textContent = 'Error: ' + err;
+      }
+    };
+  </script>
+</body>
+</html>
