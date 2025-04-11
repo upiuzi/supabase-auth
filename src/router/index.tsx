@@ -6,6 +6,19 @@ import ProtectedPage from "../pages/ProtectedPage.tsx";
 import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import Providers from "../Providers.tsx";
+import CustomerPage from "../pages/CustomerPage.tsx";
+import ProductsPage from "../pages/ProductPage.tsx";
+import BatchPage from "../pages/BatchPage.tsx";
+import OrderPage from "../pages/OrderPage.tsx";
+import DashboardPage from "../pages/DashboardPage.tsx";
+import ShipmentPage from "../pages/ShipmentPage.tsx";
+import ReportProduction from "../pages/ReportProduction.tsx";
+import ReportSales from "../pages/ReportSales.tsx";
+import ReportTopCustomer from "../pages/ReportTopCustomer.tsx";
+import RequestSamplePage from "../pages/RequestSamplePage.tsx";
+import PipelinePage from "../pages/PipelinePage.tsx";
+import ExhibitionPage from "../pages/ExhibitionPage.tsx";
+import AIAssistantPage from "../pages/AIAssistantPage.tsx";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -32,8 +45,60 @@ const router = createBrowserRouter([
         element: <AuthProtectedRoute />,
         children: [
           {
+            path: "/dashboard",
+            element: <DashboardPage />,
+          },
+          {
             path: "/protected",
             element: <ProtectedPage />,
+          },
+          {
+            path: "/customer",
+            element: <CustomerPage />,
+          },
+          {
+            path: "/product",
+            element: <ProductsPage />,
+          },
+          {
+            path: "/batches",
+            element: <BatchPage />,
+          },
+          {
+            path: "/order",
+            element: <OrderPage />,
+          },
+          {
+            path: "/shipment",
+            element: <ShipmentPage />,
+          },
+          {
+            path: "/report-production",
+            element: <ReportProduction />,
+          },
+          {
+            path: "/report-sales",
+            element: <ReportSales />,
+          },
+          {
+            path: "/report-top-customer",
+            element: <ReportTopCustomer />,
+          },
+          {
+            path: "/sample",
+            element: <RequestSamplePage />,
+          },
+          {
+            path: "/prospect",
+            element: <PipelinePage />,
+          },
+          {
+            path: "/exhibition",
+            element: <ExhibitionPage />,
+          },
+          {
+            path: "/ai-assistant",
+            element: <AIAssistantPage />,
           },
         ],
       },

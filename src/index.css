@@ -1,3 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "tailwindcss";
+
+
 * {
   margin: 0;
   padding: 0;
@@ -8,12 +14,7 @@ body {
   background-color: #1c1c1c; /* Darker background, closer to Supabase style */
   color: white;
 }
-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 10vh;
-}
+
 a {
   text-decoration: none;
 }
@@ -30,16 +31,16 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: #2a2a2a; /* Slightly lighter than body, but still dark */
+  background-color: #2a2a2a;
   padding: 2em 2em;
   width: 100%;
   max-width: 500px;
-  border-radius: 4px; /* Slightly rounded corners */
+  border-radius: 4px; 
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.2);
   border-top: 5px;
   border-width: 10px 0px 0px 0px;
   border-style: solid;
-  border-color: #3ecf8e; /* Supabase green */
+  border-color: #3ecf8e; 
 }
 #github-repo-link {
   display: flex;
@@ -50,7 +51,7 @@ a {
   font-weight: bold;
   background: none;
   cursor: pointer;
-  color: #3ecf8e; /* Supabase green */
+  color: #3ecf8e; 
 }
 #github-repo-link:hover {
   background-color: rgba(
@@ -72,41 +73,21 @@ input {
   margin-top: 7px;
   width: 300px;
 }
-button,
-a {
-  font-size: 16px;
-  padding: 1em;
-  background: none;
-  cursor: pointer;
-  color: white;
-  background: #229f65; /* Supabase green */
-  border: none;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-  width: 300px;
-  text-align: center;
-  margin-top: 1em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  font-weight: bold;
-  border: 1px solid #33b379; /* Supabase green */
-}
+
 
 a {
   border: none;
 }
 button:hover,
 a:hover {
-  background: #2ebd80; /* Slightly darker Supabase green for hover */
+  background: #2ebd80; 
 }
 .home-link {
   margin-bottom: 1em;
 }
 .auth-link {
   background: transparent;
-  color: #3ecf8e; /* Supabase green */
+  color: #3ecf8e; 
 }
 .auth-link:hover {
   background: transparent;
@@ -115,7 +96,7 @@ a:hover {
 #divider {
   width: 70%;
   height: 2px;
-  background-color: #3ecf8e; /* Supabase green */
+  background-color: #3ecf8e; 
   margin: 1em 0;
   border-radius: 100%;
 }

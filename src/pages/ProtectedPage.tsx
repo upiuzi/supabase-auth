@@ -1,13 +1,13 @@
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
+import Navbar2 from "../components/Navbar2";
 
 const ProtectedPage = () => {
   const { session } = useSession();
   return (
     <main>
-      <Link className="home-link" to="/">
-        ◄ Home
-      </Link>
+      <Navbar2/>
+     
       <section className="main-container">
         <h1 className="header-text">This is a Protected Page</h1>
         <p>Current User : {session?.user.email || "None"}</p>

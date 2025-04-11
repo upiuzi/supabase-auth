@@ -1,5 +1,5 @@
 <p align="center">
-<h1 align="center">React Supabase Auth with Protected Routes</h1>
+<h1 align="center">Sat Coconut App</h1>
 </p>
 
 <p align="center">
