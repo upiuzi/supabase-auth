@@ -488,10 +488,10 @@ export const createOrder = async (
 };
 
 export const updateOrder = async (
-  id: string, 
-  order: { 
-    customer_id: string; 
-    batch_id: string; 
+  id: string,
+  order: {
+    customer_id: string;
+    batch_id: string;
     status: 'pending' | 'confirmed' | 'cancelled';
     expedition?: string;
     description?: string;
@@ -500,42 +500,127 @@ export const updateOrder = async (
   orderItems: { product_id: string; qty: number; price: number }[]
 ): Promise<Order> => {
   try {
-    const { 
-      // data: orderData, 
-      error: orderError } = await supabase
+    // Fetch original order with items
+    const { data: originalOrder, error: fetchError } = await supabase
       .from('orders')
-      .update({ 
+      .select('*, order_items(*), batch_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      console.error('Supabase error in updateOrder (fetching original order):', fetchError);
+      throw fetchError;
+    }
+
+    // Update order and items using RPC for atomicity
+    const { error: updateError } = await supabase.rpc('update_order_with_items', {
+      p_order_id: id,
+      p_order_data: {
         customer_id: order.customer_id,
         batch_id: order.batch_id,
         status: order.status,
         expedition: order.expedition,
         description: order.description,
-        created_at: order.created_at
-      })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (orderError) throw orderError;
+        created_at: order.created_at,
+      },
+      p_order_items: orderItems.map((item) => ({
+        product_id: item.product_id,
+        qty: item.qty,
+        price: item.price,
+      })),
+    });
 
-    const { error: deleteError } = await supabase
-      .from('order_items')
-      .delete()
-      .eq('order_id', id);
-      
-    if (deleteError) throw deleteError;
+    if (updateError) {
+      console.error('Supabase error in updateOrder (updating order):', updateError);
+      throw updateError;
+    }
 
-    const orderItemsWithOrderId = orderItems.map(item => ({
-      ...item,
-      order_id: id
-    }));
-    
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItemsWithOrderId);
-      
-    if (itemsError) throw itemsError;
+    // Handle batch product quantity updates
+    const originalItems = originalOrder.order_items || [];
+    const batchId = order.batch_id || originalOrder.batch_id;
 
+    // Process updated or new items
+    for (const updatedItem of orderItems) {
+      const originalItem = originalItems.find(
+        (item: { product_id: string; }) => item.product_id === updatedItem.product_id
+      );
+      let qtyDifference = 0;
+
+      if (originalItem) {
+        // Calculate difference: original_qty - updated_qty
+        qtyDifference = originalItem.qty - updatedItem.qty;
+      } else {
+        // New item, treat as negative difference (reduce stock)
+        qtyDifference = -updatedItem.qty;
+      }
+
+      if (qtyDifference !== 0) {
+        // Fetch batch product
+        const { data: batchProduct, error: bpError } = await supabase
+          .from('batch_products')
+          .select('remaining_qty')
+          .eq('batch_id', batchId)
+          .eq('product_id', updatedItem.product_id)
+          .single();
+
+        if (bpError || !batchProduct) {
+          console.error('Supabase error in updateOrder (fetching batch product):', bpError);
+          throw new Error(`Product ${updatedItem.product_id} not found in batch ${batchId}`);
+        }
+
+        // Update remaining_qty: add qtyDifference (positive = return stock, negative = reduce stock)
+        const newRemainingQty = batchProduct.remaining_qty + qtyDifference;
+        if (newRemainingQty < 0) {
+          throw new Error(
+            `Insufficient quantity for product ${updatedItem.product_id}. Available: ${batchProduct.remaining_qty}, Requested: ${updatedItem.qty}`
+          );
+        }
+
+        const { error: updateQtyError } = await supabase
+          .from('batch_products')
+          .update({ remaining_qty: newRemainingQty })
+          .eq('batch_id', batchId)
+          .eq('product_id', updatedItem.product_id);
+
+        if (updateQtyError) {
+          console.error('Supabase error in updateOrder (updating batch product qty):', updateQtyError);
+          throw updateQtyError;
+        }
+      }
+    }
+
+    // Process removed items
+    for (const originalItem of originalItems) {
+      if (!orderItems.find((item) => item.product_id === originalItem.product_id)) {
+        // Item was removed, return its quantity to batch
+        const { data: batchProduct, error: bpError } = await supabase
+          .from('batch_products')
+          .select('remaining_qty')
+          .eq('batch_id', batchId)
+          .eq('product_id', originalItem.product_id)
+          .single();
+
+        if (bpError || !batchProduct) {
+          console.error('Supabase error in updateOrder (fetching batch product for removed item):', bpError);
+          throw new Error(`Product ${originalItem.product_id} not found in batch ${batchId}`);
+        }
+
+        const newRemainingQty = batchProduct.remaining_qty + originalItem.qty;
+
+        const { error: updateQtyError } = await supabase
+          .from('batch_products')
+          .update({ remaining_qty: newRemainingQty })
+          .eq('batch_id', batchId)
+          .eq('product_id', originalItem.product_id);
+
+        if (updateQtyError) {
+          console.error('Supabase error in updateOrder (updating batch product qty for removed item):', updateQtyError);
+          throw updateQtyError;
+        }
+      }
+    }
+
+    // Fetch and return updated order
     return getOrderById(id) as Promise<Order>;
   } catch (error) {
     console.error('Supabase error in updateOrder:', error);
