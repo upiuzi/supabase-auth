@@ -536,13 +536,13 @@ export const updateOrder = async (
     }
 
     // Handle batch product quantity updates
-    const originalItems = originalOrder.order_items || [];
+    const originalItems: OrderItem[] = originalOrder.order_items || [];
     const batchId = order.batch_id || originalOrder.batch_id;
 
     // Process updated or new items
     for (const updatedItem of orderItems) {
       const originalItem = originalItems.find(
-        (item: { product_id: string; }) => item.product_id === updatedItem.product_id
+        (item) => item.product_id === updatedItem.product_id
       );
       let qtyDifference = 0;
 
@@ -624,6 +624,7 @@ export const updateOrder = async (
     return getOrderById(id) as Promise<Order>;
   } catch (error) {
     console.error('Supabase error in updateOrder:', error);
+    handleSupabaseError(error);
     throw error;
   }
 };
@@ -834,7 +835,7 @@ export const deleteSample = async (id: string) => {
 };
 
 // Pipeline functions
-import type { Pipeline } from '../type/schema';
+import type { OrderItem, Pipeline } from '../type/schema';
 
 export const getPipelines = async (): Promise<Pipeline[]> => {
   try {

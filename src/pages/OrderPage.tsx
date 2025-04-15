@@ -607,6 +607,35 @@ const OrderPage = () => {
     doc.save(`Invoice_${order.id}.pdf`);
   };
 
+
+  const handleStatusChange = async (orderId: string, newStatus: 'pending' | 'confirmed' | 'cancelled') => {
+    setLoading(true);
+    try {
+      const order = await getOrderById(orderId);
+      if (!order) throw new Error('Order not found');
+  
+      await updateOrder(
+        orderId,
+        {
+          ...order,
+          status: newStatus,
+        },
+        order.order_items?.map((item) => ({
+          product_id: item.product_id,
+          qty: item.qty,
+          price: item.price,
+        })) || []
+      );
+      await fetchOrders(); // Refresh the orders list
+      alert('Status updated successfully');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
@@ -754,102 +783,131 @@ const OrderPage = () => {
                     <th className="py-3 px-4">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {currentItems.map((order, index) => (
-                    <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className='py-3 px-4' >
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => handleSelectOrder(order.id)}
-                          disabled={loading}
-                          className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="py-3 px-4 text-gray-300">{"order" + index + 1}</td>
-                      <td className="py-3 px-4 text-white">{getCustomerName(order.customer_id)}</td>
-                      <td className="py-3 px-4 text-white">{getBatchId(order.batch_id)}</td>
-                      <td className="py-3 px-4 text-white">
-                        {order.order_items && order.order_items.length > 0 ? (
-                          order.order_items.map((item, idx) => (
-                            <div key={idx}>
-                              {getProductName(item.product_id, order.batch_id)}: {item.qty}
-                            </div>
-                          ))
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-white">
-                        {order.created_at
-                          ? new Date(order.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })
-                          : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-white">
-                        Rp {getTotalAmount(order).toLocaleString('id-ID')},00
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`text-sm px-3 py-1 rounded-full ${getStatusColor(order.status)}`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 flex gap-2">
-                        <button
-                          onClick={() => {
-                            setOrderToView(order);
-                            setShowDetailModal(true);
-                          }}
-                          className="text-gray-400 hover:text-green-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3 8a8 8 0 100-16 8 8 0 000 16z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOrderToEdit(order);
-                            setFormData({
-                              customer_id: order.customer_id,
-                              batch_id: order.batch_id,
-                              status: order.status,
-                              expedition: order.expedition || '',
-                              description: order.description || '',
-                              order_items: order.order_items?.map((item) => ({
-                                product_id: item.product_id,
-                                qty: item.qty,
-                                price: item.price,
-                              })) || [],
-                            });
-                            setShowEditModal(true);
-                          }}
-                          className="text-gray-400 hover:text-blue-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOrderToDelete(order.id);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="text-gray-400 hover:text-red-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+<tbody>
+  {currentItems.map((order, index) => (
+    <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700">
+      <td className="py-3 px-4">
+        <input
+          type="checkbox"
+          checked={selectedOrders.includes(order.id)}
+          onChange={() => handleSelectOrder(order.id)}
+          disabled={loading}
+          className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
+        />
+      </td>
+      <td className="py-3 px-4 text-gray-300">{"order" + index + 1}</td>
+      <td className="py-3 px-4 text-white">{getCustomerName(order.customer_id)}</td>
+      <td className="py-3 px-4 text-white">{getBatchId(order.batch_id)}</td>
+      <td className="py-3 px-4 text-white">
+        {order.order_items && order.order_items.length > 0 ? (
+          order.order_items.map((item, idx) => (
+            <div key={idx}>
+              {getProductName(item.product_id, order.batch_id)}: {item.qty}
+            </div>
+          ))
+        ) : (
+          '-'
+        )}
+      </td>
+      <td className="py-3 px-4 text-white">
+        {order.created_at
+          ? new Date(order.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : '-'}
+      </td>
+      <td className="py-3 px-4 text-white">
+        Rp {getTotalAmount(order).toLocaleString('id-ID')},00
+      </td>
+      <td className="py-3 px-4">
+        <select
+          value={order.status}
+          onChange={(e) =>
+            handleStatusChange(
+              order.id,
+              e.target.value as 'pending' | 'confirmed' | 'cancelled'
+            )
+          }
+          className={`text-sm px-3 py-1 rounded-full ${getStatusColor(
+            order.status
+          )} focus:outline-none`}
+          disabled={loading}
+        >
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </td>
+      <td className="py-3 px-4 flex gap-2">
+        <button
+          onClick={() => {
+            setOrderToView(order);
+            setShowDetailModal(true);
+          }}
+          className="text-gray-400 hover:text-green-400"
+          disabled={loading}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3 8a8 8 0 100-16 8 8 0 000 16z"
+            />
+          </svg>
+        </button>
+        <button
+          onClick={() => {
+            setOrderToEdit(order);
+            setFormData({
+              customer_id: order.customer_id,
+              batch_id: order.batch_id,
+              status: order.status,
+              expedition: order.expedition || '',
+              description: order.description || '',
+              order_items: order.order_items?.map((item) => ({
+                product_id: item.product_id,
+                qty: item.qty,
+                price: item.price,
+              })) || [],
+            });
+            setShowEditModal(true);
+          }}
+          className="text-gray-400 hover:text-blue-400"
+          disabled={loading}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+        </button>
+        <button
+          onClick={() => {
+            setOrderToDelete(order.id);
+            setShowDeleteConfirm(true);
+          }}
+          className="text-gray-400 hover:text-red-400"
+          disabled={loading}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18"
+            />
+          </svg>
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
               </table>
             </div>
 
