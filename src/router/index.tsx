@@ -10,6 +10,7 @@ import CustomerPage from "../pages/CustomerPage.tsx";
 import ProductsPage from "../pages/ProductPage.tsx";
 import BatchPage from "../pages/BatchPage.tsx";
 import OrderPage from "../pages/OrderPage.tsx";
+import OrderBatchPage from "../pages/OrderBatchPage.tsx";
 import DashboardPage from "../pages/DashboardPage.tsx";
 import ShipmentPage from "../pages/ShipmentPage.tsx";
 import ReportProduction from "../pages/ReportProduction.tsx";
@@ -67,6 +68,10 @@ const router = createBrowserRouter([
           {
             path: "/order",
             element: <OrderPage />,
+          },
+          {
+            path: "/orderbatch",
+            element: <OrderBatchPage />,
           },
           {
             path: "/shipment",

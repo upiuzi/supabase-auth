@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 export interface Customer {
   id: string;
   name: string;
@@ -55,6 +57,7 @@ export interface BatchShipment {
 }
 
 export interface Batch {
+  batch_name: ReactNode;
   id: string;
   batch_id: string;
   status: 'active' | 'sold_out' | 'cancelled';
@@ -111,6 +114,7 @@ export const generateMockBatches = (): Batch[] => {
           remaining_qty: 3500,
         },
       ],
+      batch_name: undefined
     },
     {
       id: '2',
@@ -135,6 +139,7 @@ export const generateMockBatches = (): Batch[] => {
           remaining_qty: 1200,
         },
       ],
+      batch_name: undefined
     },
     {
       id: '3',
@@ -159,6 +164,7 @@ export const generateMockBatches = (): Batch[] => {
           remaining_qty: 0,
         },
       ],
+      batch_name: undefined
     },
   ];
 };

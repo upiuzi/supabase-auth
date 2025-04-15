@@ -195,7 +195,8 @@ const BatchPage = () => {
           {
             batch_id: formData.batch_id,
             status: formData.status,
-            created_at: ''
+            created_at: '',
+            batch_name: undefined
           },
           formData.products
         );
@@ -244,7 +245,7 @@ const BatchPage = () => {
   };
 
   const handleBatchClick = (batchId: string) => {
-    navigate(`/order?batch_id=${batchId}`);
+    navigate(`/orderbatch?batch_id=${batchId}`);
   };
 
   const handleShipmentClick = (batchId: string) => {
