@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { Order, Customer, Batch } from '../../type/order';
 
@@ -48,22 +48,19 @@ const OrderTable: React.FC<OrderTableProps> = ({
   console.log('OrderTable rendered with tableType:', tableType);
 
   const tableRef = useRef<HTMLDivElement>(null);
+  const [sortByExpedition, setSortByExpedition] = useState(false);
 
   const handleExportToPNG = async () => {
     if (tableRef.current) {
       try {
-        // Clone the table to avoid modifying the visible DOM
         const tableClone = tableRef.current.cloneNode(true) as HTMLElement;
-
-        // Explicitly set dark mode styles on the cloned container and table
-        tableClone.style.backgroundColor = '#1F2937'; // gray-800
-        tableClone.style.color = '#FFFFFF'; // white
+        tableClone.style.backgroundColor = '#1F2937';
+        tableClone.style.color = '#FFFFFF';
         const tableElement = tableClone.querySelector('table') as HTMLElement;
         if (tableElement) {
-          tableElement.style.backgroundColor = '#1F2937'; // gray-800
+          tableElement.style.backgroundColor = '#1F2937';
         }
 
-        // Hide the Actions column (last column) in the clone
         const rows = tableClone.querySelectorAll('tr');
         rows.forEach((row) => {
           const cells = row.querySelectorAll('th, td');
@@ -73,56 +70,50 @@ const OrderTable: React.FC<OrderTableProps> = ({
           }
         });
 
-        // Calculate the current items based on pagination (same logic as in the render)
         const indexOfLastItem = currentPage * itemsPerPage;
         const indexOfFirstItem = indexOfLastItem - itemsPerPage;
         const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
 
-        // Replace <select> elements in the Status column with plain text using currentItems data
-        const statusCells = tableClone.querySelectorAll('tbody tr:not(:last-child) td:nth-child(9)'); // Status column is the 9th column, exclude the last row (totals row)
+        const statusCells = tableClone.querySelectorAll('tbody tr:not(:last-child) td:nth-child(9)');
         statusCells.forEach((cell, index) => {
           if (index < currentItems.length) {
             const order = currentItems[index];
-            const status = order.status; // Use the actual status from the data
-            const statusText = status.charAt(0).toUpperCase() + status.slice(1); // Capitalize (e.g., "Pending")
+            const status = order.status;
+            const statusText = status.charAt(0).toUpperCase() + status.slice(1);
             const statusSpan = document.createElement('span');
             statusSpan.textContent = statusText;
-            // Apply styles based on the status
             const statusClasses = getStatusColor(status).split(' ').filter((cls) =>
               cls.startsWith('bg-') || cls.startsWith('text-')
             );
             statusSpan.className = statusClasses.join(' ');
-            // Ensure inline styles for better rendering
-            statusSpan.style.backgroundColor = getStatusColor(status).includes('bg-[#4A2F00]') ? '#4A2F00' : 
-                                              getStatusColor(status).includes('bg-[#003087]') ? '#003087' : 
+            statusSpan.style.backgroundColor = getStatusColor(status).includes('bg-[#4A2F00]') ? '#4A2F00' :
+                                              getStatusColor(status).includes('bg-[#003087]') ? '#003087' :
                                               getStatusColor(status).includes('bg-[#8B0000]') ? '#8B0000' : '#374151';
-            statusSpan.style.color = getStatusColor(status).includes('text-[#FFD700]') ? '#FFD700' : 
-                                     getStatusColor(status).includes('text-[#FFFFFF]') ? '#FFFFFF' : 
+            statusSpan.style.color = getStatusColor(status).includes('text-[#FFD700]') ? '#FFD700' :
+                                     getStatusColor(status).includes('text-[#FFFFFF]') ? '#FFFFFF' :
                                      getStatusColor(status).includes('text-[#FFB6C1]') ? '#FFB6C1' : '#D1D5DB';
-            statusSpan.style.padding = '4px 12px'; // Match the select's padding (text-sm px-3 py-1)
-            statusSpan.style.borderRadius = '9999px'; // Match rounded-full
+            statusSpan.style.padding = '4px 12px';
+            statusSpan.style.borderRadius = '9999px';
             statusSpan.style.display = 'inline-block';
-            // Replace the cell content with the span
             cell.innerHTML = '';
             cell.appendChild(statusSpan);
           }
         });
 
-        // Recursively replace oklch colors with hex equivalents
         const replaceOklchColors = (element: HTMLElement) => {
           const computedStyle = window.getComputedStyle(element);
           if (computedStyle.backgroundColor.includes('oklch')) {
-            element.style.backgroundColor = '#1F2937'; // Fallback to gray-800
+            element.style.backgroundColor = '#1F2937';
           }
           if (computedStyle.color.includes('oklch')) {
-            element.style.color = '#FFFFFF'; // Fallback to white
+            element.style.color = '#FFFFFF';
           }
           if (computedStyle.borderColor.includes('oklch')) {
-            element.style.borderColor = '#374151'; // Fallback to gray-700
+            element.style.borderColor = '#374151';
           }
           ['fill', 'stroke'].forEach((prop) => {
             if (computedStyle.getPropertyValue(prop).includes('oklch')) {
-              element.style.setProperty(prop, '#FFFFFF'); // Fallback to white
+              element.style.setProperty(prop, '#FFFFFF');
             }
           });
           Array.from(element.children).forEach((child) =>
@@ -132,34 +123,29 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
         replaceOklchColors(tableClone);
 
-        // Create a temporary container for the clone
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.left = '-9999px';
-        tempContainer.style.backgroundColor = '#1F2937'; // Ensure the container is also dark
+        tempContainer.style.backgroundColor = '#1F2937';
         tempContainer.appendChild(tableClone);
         document.body.appendChild(tempContainer);
 
-        // Log the cloned table's HTML for debugging
         console.log('Cloned table HTML before export:', tableClone.outerHTML);
 
-        // Render the clone with html2canvas
         const canvas = await html2canvas(tempContainer, {
-          backgroundColor: '#1F2937', // gray-800
-          scale: 3, // Increase resolution for better text rendering
-          useCORS: true, // Handle cross-origin issues
+          backgroundColor: '#1F2937',
+          scale: 3,
+          useCORS: true,
         });
 
-        // Clean up
         document.body.removeChild(tempContainer);
 
-        // Trigger download
         const link = document.createElement('a');
         link.href = canvas.toDataURL('image/png');
         link.download = `order-table-${tableType}-${new Date().toISOString()}.png`;
         link.click();
       } catch (error) {
-        console.error('Error exporting table to PNG:', error);
+        console.error('Error exporting camps to PNG:', error);
         alert('Failed to export table to PNG');
       }
     }
@@ -217,19 +203,32 @@ const OrderTable: React.FC<OrderTableProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return 'bg-[#4A2F00] text-[#FFD700]'; // yellow-900, yellow-200
+        return 'bg-[#4A2F00] text-[#FFD700]';
       case 'pending':
-        return 'bg-[#003087] text-[#FFFFFF]'; // blue-900, white
+        return 'bg-[#003087] text-[#FFFFFF]';
       case 'cancelled':
-        return 'bg-[#8B0000] text-[#FFB6C1]'; // red-900, red-200
+        return 'bg-[#8B0000] text-[#FFB6C1]';
       default:
-        return 'bg-[#374151] text-[#D1D5DB]'; // gray-700, gray-200
+        return 'bg-[#374151] text-[#D1D5DB]';
     }
+  };
+
+  const handleSortByExpedition = () => {
+    setSortByExpedition(!sortByExpedition);
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
+  let currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
+
+  if (sortByExpedition && tableType === 'shipment') {
+    currentItems = [...currentItems].sort((a, b) => {
+      const expeditionA = a.expedition || '-';
+      const expeditionB = b.expedition || '-';
+      return expeditionA.localeCompare(expeditionB);
+    });
+  }
+
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
   const getPaginationButtons = () => {
@@ -277,93 +276,93 @@ const OrderTable: React.FC<OrderTableProps> = ({
       <style>
         {`
           .export-compatible {
-            background-color: #1F2937; /* gray-800 */
-            color: #FFFFFF; /* white */
+            background-color: #1F2937;
+            color: #FFFFFF;
           }
           .export-compatible table {
-            background-color: #1F2937; /* gray-800 */
+            background-color: #1F2937;
           }
           .export-compatible th {
-            background-color: #1F2937; /* gray-800 */
-            color: #9CA3AF; /* gray-400 */
+            background-color: #1F2937;
+            color: #9CA3AF;
           }
           .export-compatible td {
-            color: #FFFFFF; /* white */
+            color: #FFFFFF;
           }
           .export-compatible select {
-            color: #FFFFFF; /* white text for select */
+            color: #FFFFFF;
           }
           .export-compatible .bg-gray-700 {
-            background-color: #374151; /* gray-700 */
+            background-color: #374151;
           }
           .export-compatible .text-gray-300 {
-            color: #D1D5DB; /* gray-300 */
+            color: #D1D5DB;
           }
           .export-compatible .text-gray-400 {
-            color: #9CA3AF; /* gray-400 */
+            color: #9CA3AF;
           }
           .export-compatible .bg-blue-500 {
-            background-color: #3B82F6; /* blue-500 */
+            background-color: #3B82F6;
           }
           .export-compatible .bg-green-500 {
-            background-color: #10B981; /* green-500 */
+            background-color: #10B981;
           }
           .export-compatible .bg-yellow-900 {
-            background-color: #4A2F00; /* yellow-900 */
+            background-color: #4A2F00;
           }
           .export-compatible .text-yellow-200 {
-            color: #FFD700; /* yellow-200 */
+            color: #FFD700;
           }
           .export-compatible .bg-blue-900 {
-            background-color: #003087; /* blue-900 */
+            background-color: #003087;
           }
           .export-compatible .text-blue-200 {
-            color: #87CEEB; /* blue-200 */
+            color: #87CEEB;
           }
           .export-compatible .bg-red-900 {
-            background-color: #8B0000; /* red-900 */
+            background-color: #8B0000;
           }
           .export-compatible .text-red-200 {
-            color: #FFB6C1; /* red-200 */
+            color: #FFB6C1;
           }
           .export-compatible .border-gray-700 {
-            border-color: #374151; /* gray-700 */
+            border-color: #374151;
           }
           .export-compatible .hover\\:bg-gray-600:hover {
-            background-color: #4B5563; /* gray-600 */
+            background-color: #4B5563;
           }
           .export-compatible .hover\\:text-green-400:hover {
-            color: #34D399; /* green-400 */
+            color: #34D399;
           }
           .export-compatible .hover\\:text-blue-400:hover {
-            color: #60A5FA; /* blue-400 */
+            color: #60A5FA;
           }
           .export-compatible .hover\\:text-yellow-400:hover {
-            color: #FBBF24; /* yellow-400 */
+            color: #FBBF24;
           }
           .export-compatible .hover\\:text-red-400:hover {
-            color: #F87171; /* red-400 */
+            color: #F87171;
           }
           .export-compatible .bg-gray-800 {
-            background-color: #1F2937; /* gray-800 */
+            background-color: #1F2937;
           }
           .export-compatible .disabled\\:bg-gray-800:disabled {
-            background-color: #1F2937; /* gray-800 */
+            background-color: #1F2937;
           }
           .export-compatible .disabled\\:text-gray-500:disabled {
-            color: #6B7280; /* gray-500 */
+            color: #6B7280;
           }
           .export-compatible .disabled\\:bg-green-300:disabled {
-            background-color: #6EE7B7; /* green-300 */
+            background-color: #6EE7B7;
           }
           .export-compatible .border-gray-600 {
-            border-color: #4B5563; /* gray-600 */
+            border-color: #4B5563;
           }
           .export-compatible .text-blue-500 {
-            color: #3B82F6; /* blue-500 */
+            color: #3B82F6;
           }
           .export-compatible .focus\\:ring-blue-500:focus {
-            --tw-ring-color: #3B82F6; /* blue-500 */
+            --tw-ring-color: #3B82F6;
           }
         `}
       </style>
@@ -380,28 +379,49 @@ const OrderTable: React.FC<OrderTableProps> = ({
             <option value={100}>100</option>
           </select>
         </div>
-        <button
-          onClick={handleExportToPNG}
-          disabled={loading}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-green-300 flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
-          </svg>
-          Export to PNG
-        </button>
+        <div className="flex gap-2">
+          {tableType === 'shipment' && (
+            <button
+              onClick={handleSortByExpedition}
+              disabled={loading}
+              className={`px-4 py-2 rounded flex items-center gap-2 text-white ${
+                sortByExpedition ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
+              } disabled:bg-gray-800 disabled:text-gray-500`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+                />
+              </svg>
+              {sortByExpedition ? 'Sorted by Expedition' : 'Sort by Expedition'}
+            </button>
+          )}
+          <button
+            onClick={handleExportToPNG}
+            disabled={loading}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-green-300 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            Export to PNG
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto export-compatible" ref={tableRef}>
         <table className="min-w-full bg-gray-800 rounded-lg">
           <thead>
             <tr className="text-gray-400 text-left">
-              <th className="py-3 px-4 w-6">
+              <th className="py-3 px-4 w-16">
                 <input
                   type="checkbox"
                   checked={selectedOrders.length === currentItems.length && currentItems.length > 0}
@@ -415,7 +435,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
               <th className="py-3 px-4">Batch</th>
               {tableType === 'orders' ? (
                 <>
-                  {console.log('Rendering Orders table columns')}
                   <th className="py-3 px-4">Product</th>
                   <th className="py-3 px-4">Qty</th>
                   <th className="py-3 px-4">Price</th>
@@ -423,7 +442,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </>
               ) : (
                 <>
-                  {console.log('Rendering Shipment table columns')}
                   <th className="py-3 px-4">Shipment</th>
                   <th className="py-3 px-4">Customer Phone</th>
                   <th className="py-3 px-4">Customer Address</th>
@@ -446,12 +464,11 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
                   />
                 </td>
-                <td className="py-4 px-4 text-gray-300">{'order' + (index + 1)}</td>
+                <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td>
                 <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
                 <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
                 {tableType === 'orders' ? (
                   <>
-                    {console.log('Rendering Orders table row for order:', order.id)}
                     <td className="py-4 px-4 text-white">
                       {order.order_items && order.order_items.length > 0 ? (
                         <div className="space-y-1">
@@ -507,7 +524,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   </>
                 ) : (
                   <>
-                    {console.log('Rendering Shipment table row for order:', order.id)}
                     <td className="py-4 px-4 text-white">{order.expedition || '-'}</td>
                     <td className="py-4 px-4 text-white">{getCustomerPhone(order.customer_id)}</td>
                     <td className="py-4 px-4 text-white">{getCustomerAddress(order.customer_id)}</td>
@@ -592,13 +608,17 @@ const OrderTable: React.FC<OrderTableProps> = ({
             ))}
             {tableType === 'orders' && (
               <tr className="border-t border-gray-700 font-bold">
-                <td colSpan={8} className="py-4 px-4 text-right">
+                <td colSpan={5} className="py-4 px-4 text-right">
                   Overall Total:
                 </td>
                 <td className="py-4 px-4 text-white">
+                  {getOverallTotalQtyAllProducts()}
+                </td>
+                <td className="py-4 px-4 text-white"></td>
+                <td className="py-4 px-4 text-white">
                   Rp {getOverallTotalAmount().toLocaleString('id-ID')},00
                 </td>
-                <td className="py-4 px-4 text-white">Qty: {getOverallTotalQtyAllProducts()}</td>
+                <td className="py-4 px-4 text-white"></td>
                 <td></td>
               </tr>
             )}
