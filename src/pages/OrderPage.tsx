@@ -383,11 +383,11 @@ const OrderPage = () => {
     return order.order_items.reduce((total, item) => total + (item.price * item.qty), 0);
   };
 
-  const getTotalQtyPerProduct = (order: Order, productId: string) => {
-    if (!order.order_items) return 0;
-    const item = order.order_items.find(item => item.product_id === productId);
-    return item ? item.qty : 0;
-  };
+  // const getTotalQtyPerProduct = (order: Order, productId: string) => {
+  //   if (!order.order_items) return 0;
+  //   const item = order.order_items.find(item => item.product_id === productId);
+  //   return item ? item.qty : 0;
+  // };
 
   const getTotalQtyAllProducts = (order: Order) => {
     if (!order.order_items) return 0;
