@@ -100,3 +100,11 @@ a:hover {
   margin: 1em 0;
   border-radius: 100%;
 }
+
+.export-compatible {
+  background-color: #1F2937; /* gray-800 */
+  color: #FFFFFF; /* white */
+}
+.export-compatible .bg-gray-700 {
+  background-color: #374151; /* gray-700 */
+}

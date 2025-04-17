@@ -8,13 +8,17 @@ import {
   getOrderById,
   getCustomers,
   getBatches,
-  Customer,
-  Batch,
-  Order,
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import OrderTable from '../components/orders/OrderTable';
+import OrderFormModal from '../components/orders/OrderFormModal';
+import OrderDetailModal from '../components/orders/OrderDetailModal';
+import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
+import QtyEditModal from '../components/orders/QtyEditModal';
+import BulkEditModal from '../components/orders/BulkEditModal';
+import ShipmentEditModal from '../components/orders/ShipmentEditModal';
+import TotalQtySection from '../components/orders/TotalQtySection';
+import { Order, Customer, Batch, FormData, OrderItem } from '../type/order';
 
 // Extend jsPDF with autoTable plugin types
 declare module 'jspdf' {
@@ -26,13 +30,7 @@ declare module 'jspdf' {
   }
 }
 
-type OrderItem = {
-  product_id: string;
-  qty: number;
-  price: number;
-};
-
-const OrderPage = () => {
+const OrderPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -43,25 +41,23 @@ const OrderPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [showQtyEditModal, setShowQtyEditModal] = useState(false);
+  const [showShipmentEditModal, setShowShipmentEditModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [orderToView, setOrderToView] = useState<Order | null>(null);
+  const [orderToEditShipment, setOrderToEditShipment] = useState<Order | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [bulkEditDate, setBulkEditDate] = useState('');
-  const [showQtyEditModal, setShowQtyEditModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [newQty, setNewQty] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [activeTab, setActiveTab] = useState<'orders' | 'shipment'>('orders');
 
-  const [formData, setFormData] = useState<{
-    customer_id: string;
-    batch_id: string;
-    status: 'pending' | 'confirmed' | 'cancelled';
-    order_items: OrderItem[];
-    expedition?: string;
-    description?: string;
-  }>({
+  const [formData, setFormData] = useState<FormData>({
     customer_id: '',
     batch_id: '',
     status: 'pending',
@@ -69,9 +65,6 @@ const OrderPage = () => {
     expedition: '',
     description: '',
   });
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [searchParams] = useSearchParams();
   const batchIdFilter = searchParams.get('batch_id');
@@ -81,6 +74,12 @@ const OrderPage = () => {
     fetchCustomers();
     fetchBatches();
   }, []);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      applyFilters(orders);
+    }
+  }, [batchIdFilter, orders, searchQuery]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -122,9 +121,25 @@ const OrderPage = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (order) =>
-          getCustomerName(order.customer_id).toLowerCase().includes(query) ||
-          getBatchId(order.batch_id).toLowerCase().includes(query) ||
-          order.status.toLowerCase().includes(query)
+          customers
+            .find((c) => c.id === order.customer_id)
+            ?.name.toLowerCase()
+            .includes(query) ||
+          batches
+            .find((b) => b.id === order.batch_id)
+            ?.batch_id.toLowerCase()
+            .includes(query) ||
+          order.status.toLowerCase().includes(query) ||
+          order.expedition?.toLowerCase().includes(query) ||
+          order.description?.toLowerCase().includes(query) ||
+          customers
+            .find((c) => c.id === order.customer_id)
+            ?.phone?.toLowerCase()
+            .includes(query) ||
+          customers
+            .find((c) => c.id === order.customer_id)
+            ?.address?.toLowerCase()
+            .includes(query)
       );
     }
     setFilteredOrders(filtered);
@@ -169,8 +184,10 @@ const OrderPage = () => {
   };
 
   const handleAddOrderItem = () => {
-    const availableProducts = getAvailableProducts();
-    if (availableProducts.length > 0) {
+    const availableProducts = batches
+      .find((b) => b.id === formData.batch_id)
+      ?.batch_products?.filter((bp) => bp.remaining_qty > 0);
+    if (availableProducts && availableProducts.length > 0) {
       setFormData({
         ...formData,
         order_items: [
@@ -217,15 +234,10 @@ const OrderPage = () => {
           (bp) => bp.product_id === item.product_id
         );
         if (!batchProduct)
-          throw new Error(
-            `Product ${getProductName(item.product_id, formData.batch_id)} is not available in the selected batch`
-          );
+          throw new Error(`Product is not available in the selected batch`);
         if (batchProduct.remaining_qty < item.qty) {
           throw new Error(
-            `Insufficient quantity for product ${getProductName(
-              item.product_id,
-              formData.batch_id
-            )}. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
+            `Insufficient quantity for product. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
           );
         }
       }
@@ -292,6 +304,10 @@ const OrderPage = () => {
   };
 
   const handleSelectAll = () => {
+    const currentItems = filteredOrders.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
     if (selectedOrders.length === currentItems.length) {
       setSelectedOrders([]);
     } else {
@@ -338,116 +354,6 @@ const OrderPage = () => {
     }
   };
 
-  const resetForm = () => {
-    setShowModal(false);
-    setShowEditModal(false);
-    setShowDetailModal(false);
-    setOrderToEdit(null);
-    setOrderToView(null);
-    setFormData({
-      customer_id: '',
-      batch_id: '',
-      status: 'pending',
-      order_items: [],
-      expedition: '',
-      description: '',
-    });
-  };
-
-  const getAvailableProducts = () => {
-    if (!formData.batch_id) return [];
-    const selectedBatch = batches.find((b) => b.id === formData.batch_id);
-    if (!selectedBatch || !selectedBatch.batch_products) return [];
-    return selectedBatch.batch_products;
-  };
-
-  const getCustomerName = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer ? customer.name : '-';
-  };
-
-  const getCustomerPhone = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.phone || '-';
-  };
-
-  const getCustomerAddress = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.address || '-';
-  };
-
-  const getBatchId = (batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    return batch ? batch.batch_id : '-';
-  };
-
-  const getProductName = (productId: string, batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    if (batch && batch.batch_products) {
-      const batchProduct = batch.batch_products.find((bp) => bp.product_id === productId);
-      if (batchProduct && batchProduct.product) {
-        return batchProduct.product.name || 'Unknown Product';
-      }
-    }
-    return 'Unknown Product';
-  };
-
-  const getProductDescription = (productId: string, batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    if (batch && batch.batch_products) {
-      const batchProduct = batch.batch_products.find((bp) => bp.product_id === productId);
-      if (batchProduct && batchProduct.product) {
-        return batchProduct.product.description || 'No description available';
-      }
-    }
-    return 'No description available';
-  };
-
-  const getTotalAmount = (order: Order) => {
-    if (!order.order_items) return 0;
-    return order.order_items.reduce((total, item) => total + item.price * item.qty, 0);
-  };
-
-  const getTotalQtyAllProducts = (order: Order) => {
-    if (!order.order_items) return 0;
-    return order.order_items.reduce((total, item) => total + item.qty, 0);
-  };
-
-  const getOverallTotalAmount = () => {
-    return filteredOrders.reduce((total, order) => total + getTotalAmount(order), 0);
-  };
-
-  const getOverallTotalQtyAllProducts = () => {
-    return filteredOrders.reduce((total, order) => total + getTotalQtyAllProducts(order), 0);
-  };
-
-  // Calculate total quantity per product across all filtered orders
-  const getTotalQtyPerProduct = () => {
-    const totalQtyByProduct = filteredOrders.reduce((acc, order) => {
-      if (order.order_items) {
-        order.order_items.forEach((item) => {
-          const productName = getProductName(item.product_id, order.batch_id);
-          acc[productName] = (acc[productName] || 0) + item.qty;
-        });
-      }
-      return acc;
-    }, {} as Record<string, number>);
-    return totalQtyByProduct;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-yellow-900 text-yellow-200';
-      case 'pending':
-        return 'bg-blue-900 text-blue-200';
-      case 'cancelled':
-        return 'bg-red-900 text-red-200';
-      default:
-        return 'bg-gray-700 text-gray-200';
-    }
-  };
-
   const handleQtyChange = async (orderId: string, productId: string, newQty: number) => {
     setLoading(true);
     try {
@@ -485,240 +391,6 @@ const OrderPage = () => {
     }
   };
 
-  const generatePDF = (order: Order) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const leftColumnX = 10;
-    const rightColumnX = 100;
-    let yPos = 10;
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Invoice #: ${order.id}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 6;
-    const currentDate = new Date().toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-    doc.text(`Date: ${currentDate}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SAT COCONUT', leftColumnX, yPos);
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('WhatsApp: +6281122244446', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Email: jaya@satcoconut.com', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Address: Chubb Square, 9th Floor', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Jln. Jendral Sudirman Kav.60', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Jakarta, Indonesia', leftColumnX, yPos);
-
-    let customerYPos = 34;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Customer Details', rightColumnX, customerYPos);
-    customerYPos += 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${getCustomerName(order.customer_id)}`, rightColumnX, customerYPos);
-    customerYPos += 6;
-    doc.text(`Phone Number: ${getCustomerPhone(order.customer_id)}`, rightColumnX, customerYPos);
-    customerYPos += 6;
-
-    const customerAddress = getCustomerAddress(order.customer_id);
-    const maxWidth = 90;
-    const addressLines = doc.splitTextToSize(`Address: ${customerAddress}`, maxWidth);
-    doc.text(addressLines, rightColumnX, customerYPos);
-    customerYPos += 6 * addressLines.length;
-    doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
-
-    yPos = Math.max(yPos, customerYPos) + 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Products', leftColumnX, yPos);
-    yPos += 2;
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(150, 150, 150);
-    doc.line(leftColumnX, yPos, pageWidth - 10, yPos);
-    yPos += 6;
-
-    const headers = ['Product Name', 'Description', 'Qty', 'Price', 'Total'];
-    const data =
-      order.order_items?.map((item) => [
-        getProductName(item.product_id, order.batch_id),
-        getProductDescription(item.product_id, order.batch_id).substring(0, 20) + '...',
-        item.qty.toString(),
-        `Rp ${item.price.toLocaleString('id-ID')}`,
-        `Rp ${(item.price * item.qty).toLocaleString('id-ID')}`,
-      ]) || [];
-
-    doc.autoTable({
-      startY: yPos,
-      head: [headers],
-      body: [
-        ...data,
-        ['', '', '', 'Grand Total', `Rp ${getTotalAmount(order).toLocaleString('id-ID')}`],
-        ['', '', `${getTotalQtyAllProducts(order)}`, 'Total Qty', ''],
-      ],
-      styles: { fontSize: 10, font: 'helvetica' },
-      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold' },
-      bodyStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-      alternateRowStyles: { fillColor: [255, 255, 255] },
-      margin: { left: leftColumnX, right: 10 },
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Payment Methods', leftColumnX, yPos);
-    yPos += 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Transfer to account:', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Bank BCA', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('233-333-3368 : Alvin S Yohan', leftColumnX, yPos);
-
-    const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Thank you for your business!', pageWidth / 2, pageHeight - 10, {
-      align: 'center',
-    });
-
-    doc.save(`Invoice_${order.id}.pdf`);
-  };
-
-  const generatePDFPTSATI = (order: Order) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const leftColumnX = 10;
-    const rightColumnX = 100;
-    let yPos = 10;
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Invoice #: ${order.id}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 6;
-    const currentDate = new Date().toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-    doc.text(`Date: ${currentDate}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SAT COCONUT', leftColumnX, yPos);
-    yPos += 8;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('WhatsApp: +6281122244446', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Email: jaya@satcoconut.com', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Address: Chubb Square, 9th Floor', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Jln. Jendral Sudirman Kav.60', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Jakarta, Indonesia', leftColumnX, yPos);
-
-    let customerYPos = 34;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Customer Details', rightColumnX, customerYPos);
-    customerYPos += 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${getCustomerName(order.customer_id)}`, rightColumnX, customerYPos);
-    customerYPos += 6;
-    doc.text(`Phone Number: ${getCustomerPhone(order.customer_id)}`, rightColumnX, customerYPos);
-    customerYPos += 6;
-
-    const customerAddress = getCustomerAddress(order.customer_id);
-    const maxWidth = 90;
-    const addressLines = doc.splitTextToSize(`Address: ${customerAddress}`, maxWidth);
-    doc.text(addressLines, rightColumnX, customerYPos);
-    customerYPos += 6 * addressLines.length;
-    doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
-
-    yPos = Math.max(yPos, customerYPos) + 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Products', leftColumnX, yPos);
-    yPos += 2;
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(150, 150, 150);
-    doc.line(leftColumnX, yPos, pageWidth - 10, yPos);
-    yPos += 6;
-
-    const headers = ['Product Name', 'Description', 'Qty', 'Price', 'Total'];
-    const data =
-      order.order_items?.map((item) => [
-        getProductName(item.product_id, order.batch_id),
-        getProductDescription(item.product_id, order.batch_id).substring(0, 20) + '...',
-        item.qty.toString(),
-        `Rp ${item.price.toLocaleString('id-ID')}`,
-        `Rp ${(item.price * item.qty).toLocaleString('id-ID')}`,
-      ]) || [];
-
-    doc.autoTable({
-      startY: yPos,
-      head: [headers],
-      body: [
-        ...data,
-        ['', '', '', 'Grand Total', `Rp ${getTotalAmount(order).toLocaleString('id-ID')}`],
-        ['', '', `${getTotalQtyAllProducts(order)}`, 'Total Qty', ''],
-      ],
-      styles: { fontSize: 10, font: 'helvetica' },
-      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold' },
-      bodyStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-      alternateRowStyles: { fillColor: [255, 255, 255] },
-      margin: { left: leftColumnX, right: 10 },
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 10;
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Payment Methods', leftColumnX, yPos);
-    yPos += 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Transfer to account:', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('Bank BCA', leftColumnX, yPos);
-    yPos += 6;
-    doc.text('2610 - 222 - 628 : PT Semesta Agro Tani', leftColumnX, yPos);
-
-    const pageHeight = doc.internal.pageSize.getHeight();
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Thank you for your business!', pageWidth / 2, pageHeight - 10, {
-      align: 'center',
-    });
-
-    doc.save(`Invoice_${order.id}.pdf`);
-  };
-
   const handleStatusChange = async (
     orderId: string,
     newStatus: 'pending' | 'confirmed' | 'cancelled'
@@ -750,58 +422,50 @@ const OrderPage = () => {
     }
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const handleShipmentEdit = async (orderId: string, expedition: string, description: string) => {
+    setLoading(true);
+    try {
+      const order = await getOrderById(orderId);
+      if (!order) throw new Error('Order not found');
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  const getPaginationButtons = () => {
-    const maxVisibleButtons = 5;
-    const buttons: (number | string)[] = [];
-    let startPage: number;
-    let endPage: number;
-
-    if (totalPages <= maxVisibleButtons) {
-      startPage = 1;
-      endPage = totalPages;
-    } else {
-      const halfVisible = Math.floor(maxVisibleButtons / 2);
-      startPage = Math.max(1, currentPage - halfVisible);
-      endPage = Math.min(totalPages, currentPage + halfVisible);
-
-      if (endPage - startPage + 1 < maxVisibleButtons) {
-        if (currentPage <= halfVisible + 1) {
-          endPage = maxVisibleButtons;
-        } else {
-          startPage = totalPages - maxVisibleButtons + 1;
-        }
-      }
+      await updateOrder(
+        orderId,
+        {
+          ...order,
+          expedition,
+          description,
+        },
+        order.order_items?.map((item) => ({
+          product_id: item.product_id,
+          qty: item.qty,
+          price: item.price,
+        })) || []
+      );
+      await fetchOrders();
+      alert('Shipment details updated successfully');
+    } catch (error) {
+      console.error('Error updating shipment details:', error);
+      alert('Failed to update shipment details');
+    } finally {
+      setLoading(false);
     }
-
-    if (startPage > 1) {
-      buttons.push(1);
-      if (startPage > 2) buttons.push('...');
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(i);
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) buttons.push('...');
-      buttons.push(totalPages);
-    }
-
-    return buttons;
   };
 
-  useEffect(() => {
-    if (orders.length > 0) {
-      applyFilters(orders);
-    }
-  }, [batchIdFilter, orders]);
+  const resetForm = () => {
+    setShowModal(false);
+    setShowEditModal(false);
+    setShowDetailModal(false);
+    setOrderToEdit(null);
+    setOrderToView(null);
+    setFormData({
+      customer_id: '',
+      batch_id: '',
+      status: 'pending',
+      order_items: [],
+      expedition: '',
+      description: '',
+    });
+  };
 
   return (
     <>
@@ -840,42 +504,8 @@ const OrderPage = () => {
             </button>
           </div>
         </div>
-     
-        {/* Total Quantity Per Product Section */}
-<div></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <div className="mb-6 bg-gray-800 p-4 rounded-lg">
-    <h2 className="text-lg font-bold text-white mb-2">Total Produksi</h2>
-    {Object.keys(getTotalQtyPerProduct()).length === 0 ? (
-      <p className="text-gray-400">No products ordered yet.</p>
-    ) : (
-      <ul className="space-y-2">
-        {Object.entries(getTotalQtyPerProduct()).map(([productName, qty]) => (
-          <li key={productName} className="text-gray-200">
-            <span className="font-medium">{productName}:</span> {qty} kg
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
 
-  <div className="mb-6 bg-gray-800 p-4 rounded-lg">
-    <h2 className="text-lg font-bold text-white mb-2">Total Order</h2>
-    {Object.keys(getTotalQtyPerProduct()).length === 0 ? (
-      <p className="text-gray-400">No products ordered yet.</p>
-    ) : (
-      <ul className="space-y-2">
-        {Object.entries(getTotalQtyPerProduct()).map(([productName, qty]) => (
-          <li key={productName} className="text-gray-200">
-            <span className="font-medium">{productName}:</span> {qty} kg
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-</div>
-
-    
+        <TotalQtySection filteredOrders={filteredOrders} batches={batches} />
 
         <div className="mb-6">
           <div className="relative">
@@ -903,886 +533,168 @@ const OrderPage = () => {
           </div>
         </div>
 
+        <div className="mb-6">
+          <div className="flex border-b border-gray-700">
+            <button
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === 'orders'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+              onClick={() => {
+                console.log('Switching to Orders tab');
+                setActiveTab('orders');
+              }}
+            >
+              Orders
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium ${
+                activeTab === 'shipment'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+              onClick={() => {
+                console.log('Switching to Shipment tab');
+                setActiveTab('shipment');
+              }}
+            >
+              Shipment
+            </button>
+          </div>
+        </div>
+
         {loading ? (
           <div className="text-center text-gray-400">Loading...</div>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center text-gray-400">No orders available.</div>
         ) : (
-          <>
-            <div className="mb-4 flex gap-4 items-center">
-              <label className="text-gray-300">Show per page:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(parseInt(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
-              >
-                <option value={10}>10</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-800 rounded-lg">
-                <thead>
-                  <tr className="text-gray-400 text-left">
-                    <th className="py-3 px-4 w-6">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.length === currentItems.length && currentItems.length > 0}
-                        onChange={handleSelectAll}
-                        disabled={loading}
-                        className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
-                      />
-                    </th>
-                    <th className="py-3 px-4">Order ID</th>
-                    <th className="py-3 px-4">Customer</th>
-                    <th className="py-3 px-4">Batch</th>
-                    <th className="py-3 px-4">Product</th>
-                    <th className="py-3 px-4">Qty</th>
-                    <th className="py-3 px-4">Price</th>
-                    <th className="py-3 px-4">Amount</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentItems.map((order, index) => (
-                    <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="py-4 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => handleSelectOrder(order.id)}
-                          disabled={loading}
-                          className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="py-4 px-4 text-gray-300">{'order' + (index + 1)}</td>
-                      <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
-                      <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
-                      <td className="py-4 px-4 text-white">
-                        {order.order_items && order.order_items.length > 0 ? (
-                          <div className="space-y-1">
-                            {order.order_items.map((item, idx) => (
-                              <div key={idx}>{getProductName(item.product_id, order.batch_id)}</div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-white">
-                        {order.order_items && order.order_items.length > 0 ? (
-                          <div className="space-y-1">
-                            {order.order_items.map((item, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedOrderId(order.id);
-                                    setSelectedProductId(item.product_id);
-                                    setNewQty(item.qty);
-                                    setShowQtyEditModal(true);
-                                  }}
-                                  className="text-white hover:text-gray-300 flex items-center gap-1"
-                                  disabled={loading}
-                                >
-                                  {item.qty} kg
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth="2"
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-white">
-                        {order.order_items && order.order_items.length > 0 ? (
-                          <div className="space-y-1">
-                            {order.order_items.map((item, idx) => (
-                              <div key={idx}>Rp {item.price.toLocaleString('id-ID')}</div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-white">
-                        Rp {getTotalAmount(order).toLocaleString('id-ID')},00
-                      </td>
-                      <td className="py-4 px-4">
-                        <select
-                          value={order.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              order.id,
-                              e.target.value as 'pending' | 'confirmed' | 'cancelled'
-                            )
-                          }
-                          className={`text-sm px-3 py-1 rounded-full ${getStatusColor(order.status)} focus:outline-none`}
-                          disabled={loading}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </td>
-                      <td className="py-4 px-4 flex gap-2">
-                        <button
-                          onClick={() => {
-                            setOrderToView(order);
-                            setShowDetailModal(true);
-                          }}
-                          className="text-gray-400 hover:text-green-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3 8a8 8 0 100-16 8 8 0 000 16z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOrderToEdit(order);
-                            setFormData({
-                              customer_id: order.customer_id,
-                              batch_id: order.batch_id,
-                              status: order.status,
-                              expedition: order.expedition || '',
-                              description: order.description || '',
-                              order_items: order.order_items?.map((item) => ({
-                                product_id: item.product_id,
-                                qty: item.qty,
-                                price: item.price,
-                              })) || [],
-                            });
-                            setShowEditModal(true);
-                          }}
-                          className="text-gray-400 hover:text-blue-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOrderToDelete(order.id);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="text-gray-400 hover:text-red-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18"
-                            />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="border-t border-gray-700 font-bold">
-                    <td colSpan={8} className="py-4 px-4 text-right">
-                      Overall Total:
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      Rp {getOverallTotalAmount().toLocaleString('id-ID')},00
-                    </td>
-                    <td className="py-4 px-4 text-white">Qty: {getOverallTotalQtyAllProducts()}</td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {filteredOrders.length > 0 && (
-              <div className="mt-4 flex justify-between items-center">
-                <div className="text-gray-400">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredOrders.length)} of{' '}
-                  {filteredOrders.length} entries
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => paginate(1)}
-                    disabled={currentPage === 1 || loading}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
-                  >
-                    First
-                  </button>
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1 || loading}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
-                  >
-                    Previous
-                  </button>
-                  {getPaginationButtons().map((page, index) => (
-                    <button
-                      key={index}
-                      onClick={() => typeof page === 'number' && paginate(page)}
-                      disabled={typeof page !== 'number' || loading}
-                      className={`px-4 py-2 rounded ${
-                        page === currentPage
-                          ? 'bg-blue-500 text-white'
-                          : typeof page === 'number'
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-gray-700 text-gray-400 cursor-default'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages || loading}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
-                  >
-                    Next
-                  </button>
-                  <button
-                    onClick={() => paginate(totalPages)}
-                    disabled={currentPage === totalPages || loading}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
-                  >
-                    Last
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+          <OrderTable
+            key={activeTab}
+            orders={orders}
+            filteredOrders={filteredOrders}
+            customers={customers}
+            batches={batches}
+            loading={loading}
+            selectedOrders={selectedOrders}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            tableType={activeTab}
+            onSelectOrder={handleSelectOrder}
+            onSelectAll={handleSelectAll}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
+            onEditQty={(orderId, productId, qty) => {
+              setSelectedOrderId(orderId);
+              setSelectedProductId(productId);
+              setNewQty(qty);
+              setShowQtyEditModal(true);
+            }}
+            onViewDetails={(order) => {
+              setOrderToView(order);
+              setShowDetailModal(true);
+            }}
+            onEditOrder={(order) => {
+              setOrderToEdit(order);
+              setFormData({
+                customer_id: order.customer_id,
+                batch_id: order.batch_id,
+                status: order.status,
+                expedition: order.expedition || '',
+                description: order.description || '',
+                order_items: order.order_items?.map((item) => ({
+                  product_id: item.product_id,
+                  qty: item.qty,
+                  price: item.price,
+                })) || [],
+              });
+              setShowEditModal(true);
+            }}
+            onDeleteOrder={(orderId) => {
+              setOrderToDelete(orderId);
+              setShowDeleteConfirm(true);
+            }}
+            onStatusChange={handleStatusChange}
+            onEditShipment={(order) => {
+              setOrderToEditShipment(order);
+              setShowShipmentEditModal(true);
+            }}
+          />
         )}
 
-        {showQtyEditModal && selectedOrderId && selectedProductId && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h2 className="text-xl font-bold mb-4">Edit Quantity</h2>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-gray-300">Product</label>
-                <input
-                  type="text"
-                  value={getProductName(
-                    selectedProductId,
-                    orders.find((o) => o.id === selectedOrderId)?.batch_id || ''
-                  )}
-                  className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none"
-                  disabled
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-gray-300">Quantity</label>
-                <input
-                  type="number"
-                  value={newQty}
-                  onChange={(e) => setNewQty(parseInt(e.target.value))}
-                  className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="1"
-                  disabled={loading}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowQtyEditModal(false);
-                    setSelectedOrderId(null);
-                    setSelectedProductId(null);
-                    setNewQty(0);
-                  }}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleQtyChange(selectedOrderId, selectedProductId, newQty)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
-                  disabled={loading || isNaN(newQty) || newQty <= 0}
-                >
-                  {loading ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <OrderFormModal
+          show={showModal || showEditModal}
+          loading={loading}
+          formData={formData}
+          customers={customers}
+          batches={batches}
+          isEdit={showEditModal}
+          onClose={resetForm}
+          onSubmit={handleSubmit}
+          onInputChange={handleInputChange}
+          onOrderItemChange={handleOrderItemChange}
+          onAddOrderItem={handleAddOrderItem}
+          onRemoveOrderItem={handleRemoveOrderItem}
+        />
 
-        {showModal && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-lg text-white shadow-lg">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Create New Order</h2>
-                <button onClick={resetForm} className="text-gray-400 hover:text-gray-200" disabled={loading}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Customer</label>
-                    <select
-                      name="customer_id"
-                      value={formData.customer_id}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={loading}
-                    >
-                      <option value="" className="bg-gray-700 text-gray-200">
-                        Select customer
-                      </option>
-                      {customers.map((customer) => (
-                        <option key={customer.id} value={customer.id} className="bg-gray-700 text-gray-200">
-                          {customer.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Batch</label>
-                    <select
-                      name="batch_id"
-                      value={formData.batch_id}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={loading}
-                    >
-                      <option value="" className="bg-gray-700 text-gray-200">
-                        Select batch
-                      </option>
-                      {batches.map((batch) => (
-                        <option key={batch.id} value={batch.id} className="bg-gray-700 text-gray-200">
-                          {batch.batch_id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+        <DeleteConfirmModal
+          show={showDeleteConfirm}
+          loading={loading}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={loading}
-                  >
-                    <option value="pending" className="bg-gray-700 text-gray-200">
-                      Pending
-                    </option>
-                    <option value="confirmed" className="bg-gray-700 text-gray-200">
-                      Confirmed
-                    </option>
-                    <option value="cancelled" className="bg-gray-700 text-gray-200">
-                      Cancelled
-                    </option>
-                  </select>
-                </div>
+        <OrderDetailModal
+          show={showDetailModal}
+          order={orderToView}
+          customers={customers}
+          batches={batches}
+          loading={loading}
+          onClose={resetForm}
+        />
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Expedition</label>
-                  <input
-                    type="text"
-                    name="expedition"
-                    value={formData.expedition}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                    placeholder="Enter expedition"
-                    disabled={loading}
-                  />
-                </div>
+        <QtyEditModal
+          show={showQtyEditModal}
+          loading={loading}
+          orderId={selectedOrderId}
+          productId={selectedProductId}
+          newQty={newQty}
+          orders={orders}
+          onClose={() => {
+            setShowQtyEditModal(false);
+            setSelectedOrderId(null);
+            setSelectedProductId(null);
+            setNewQty(0);
+          }}
+          onSave={handleQtyChange}
+          onQtyChange={setNewQty}
+        />
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                    rows={3}
-                    placeholder="Enter description"
-                    disabled={loading}
-                  />
-                </div>
+        <BulkEditModal
+          show={showBulkEditModal}
+          loading={loading}
+          bulkEditDate={bulkEditDate}
+          onClose={() => {
+            setShowBulkEditModal(false);
+            setBulkEditDate('');
+          }}
+          onSave={handleBulkEditSubmit}
+          onDateChange={setBulkEditDate}
+        />
 
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-300">Order Items</label>
-                    <button
-                      type="button"
-                      onClick={handleAddOrderItem}
-                      disabled={!formData.batch_id || getAvailableProducts().length === 0 || loading}
-                      className="text-blue-400 text-sm hover:text-blue-300 disabled:text-gray-600"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
-                  {formData.order_items.length === 0 ? (
-                    <div className="border border-gray-600 rounded p-4 text-center text-gray-400">
-                      Select a batch first to see available products.
-                    </div>
-                  ) : (
-                    formData.order_items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 mb-3 p-3 border border-gray-600 rounded bg-gray-700"
-                      >
-                        <div className="flex-1">
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => handleOrderItemChange(index, 'product_id', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={loading}
-                          >
-                            {getAvailableProducts().map((product) => (
-                              <option
-                                key={product.product_id}
-                                value={product.product_id}
-                                className="bg-gray-600 text-gray-200"
-                              >
-                                {getProductName(product.product_id, formData.batch_id)} (
-                                {product.remaining_qty} available)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="w-20">
-                          <input
-                            type="number"
-                            value={item.qty}
-                            onChange={(e) => handleOrderItemChange(index, 'qty', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            min="1"
-                            disabled={loading}
-                          />
-                        </div>
-                        <div className="w-24">
-                          <input
-                            type="number"
-                            value={item.price}
-                            onChange={(e) => handleOrderItemChange(index, 'price', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                            min="0"
-                            step="1000"
-                            placeholder="Price"
-                            disabled={loading}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOrderItem(index)}
-                          className="text-gray-400 hover:text-red-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
-                  >
-                    {loading ? 'Creating...' : 'Create Order'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h2 className="text-xl font-bold mb-4">Confirm Delete</h2>
-              <p className="mb-4">Are you sure you want to delete this order?</p>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                  disabled={loading}
-                >
-                  {loading ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showEditModal && orderToEdit && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-lg text-white">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Edit Order</h2>
-                <button onClick={resetForm} className="text-gray-400 hover:text-gray-200" disabled={loading}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Customer</label>
-                    <select
-                      name="customer_id"
-                      value={formData.customer_id}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={loading}
-                    >
-                      <option value="" className="bg-gray-700 text-gray-200">
-                        Select customer
-                      </option>
-                      {customers.map((customer) => (
-                        <option key={customer.id} value={customer.id} className="bg-gray-700 text-gray-200">
-                          {customer.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-300">Batch</label>
-                    <select
-                      name="batch_id"
-                      value={formData.batch_id}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      disabled={loading}
-                    >
-                      <option value="" className="bg-gray-700 text-gray-200">
-                        Select batch
-                      </option>
-                      {batches.map((batch) => (
-                        <option key={batch.id} value={batch.id} className="bg-gray-700 text-gray-200">
-                          {batch.batch_id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Status</label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    disabled={loading}
-                  >
-                    <option value="pending" className="bg-gray-700 text-gray-200">
-                      Pending
-                    </option>
-                    <option value="confirmed" className="bg-gray-700 text-gray-200">
-                      Confirmed
-                    </option>
-                    <option value="cancelled" className="bg-gray-700 text-gray-200">
-                      Cancelled
-                    </option>
-                  </select>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Expedition</label>
-                  <input
-                    type="text"
-                    name="expedition"
-                    value={formData.expedition}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Description</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-300">Order Items</label>
-                    <button
-                      type="button"
-                      onClick={handleAddOrderItem}
-                      disabled={!formData.batch_id || getAvailableProducts().length === 0 || loading}
-                      className="text-blue-400 text-sm hover:text-blue-300 disabled:text-gray-600"
-                    >
-                      + Add Item
-                    </button>
-                  </div>
-                  {formData.order_items.length === 0 ? (
-                    <div className="border border-gray-600 rounded p-4 text-center text-gray-400">
-                      Select a batch first to see available products.
-                    </div>
-                  ) : (
-                    formData.order_items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 mb-3 p-3 border border-gray-600 rounded bg-gray-700"
-                      >
-                        <div className="flex-1">
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => handleOrderItemChange(index, 'product_id', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={loading}
-                          >
-                            {getAvailableProducts().map((product) => (
-                              <option
-                                key={product.product_id}
-                                value={product.product_id}
-                                className="bg-gray-600 text-gray-200"
-                              >
-                                {getProductName(product.product_id, formData.batch_id)} (
-                                {product.remaining_qty} available)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="w-20">
-                          <input
-                            type="number"
-                            value={item.qty}
-                            onChange={(e) => handleOrderItemChange(index, 'qty', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            min="1"
-                            disabled={loading}
-                          />
-                        </div>
-                        <div className="w-24">
-                          <input
-                            type="number"
-                            value={item.price}
-                            onChange={(e) => handleOrderItemChange(index, 'price', e.target.value)}
-                            className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-600 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                            min="0"
-                            step="1000"
-                            placeholder="Price"
-                            disabled={loading}
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOrderItem(index)}
-                          className="text-gray-400 hover:text-red-400"
-                          disabled={loading}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showDetailModal && orderToView && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white">
-              <h2 className="text-xl font-bold mb-4">Order Details</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-bold text-lg">SAT COCONUT</h3>
-                  <p>WhatsApp: +6281122244446</p>
-                  <p>Email: jaya@satcoconut.com</p>
-                  <p>Address: Chubb Square, 9th Floor</p>
-                  <p>Jln. Jendral Sudirman Kav.60</p>
-                  <p>Jakarta, Indonesia</p>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Customer Details</h3>
-                  <p>Name: {getCustomerName(orderToView.customer_id)}</p>
-                  <p>Phone: {getCustomerPhone(orderToView.customer_id)}</p>
-                  <p>Address: {getCustomerAddress(orderToView.customer_id)}</p>
-                  <p>Batch: {getBatchId(orderToView.batch_id)}</p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <h3 className="font-bold text-lg mb-2">Order Information</h3>
-                <p>Order ID: {orderToView.id}</p>
-                <p>Status: {orderToView.status}</p>
-                <p>Expedition: {orderToView.expedition || '-'}</p>
-                <p>Description: {orderToView.description || '-'}</p>
-              </div>
-              <div className="mt-6">
-                <h3 className="font-bold text-lg mb-2">Products</h3>
-                <table className="min-w-full bg-gray-700 rounded-lg">
-                  <thead>
-                    <tr className="text-gray-400 text-left">
-                      <th className="py-3 px-4">Product Name</th>
-                      <th className="py-3 px-4">Description</th>
-                      <th className="py-3 px-4">Qty</th>
-                      <th className="py-3 px-4">Price</th>
-                      <th className="py-3 px-4">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orderToView.order_items?.map((item, index) => (
-                      <tr key={index} className="border-t border-gray-600">
-                        <td className="py-3 px-4">{getProductName(item.product_id, orderToView.batch_id)}</td>
-                        <td className="py-3 px-4">
-                          {getProductDescription(item.product_id, orderToView.batch_id).substring(0, 20) + '...'}
-                        </td>
-                        <td className="py-3 px-4">{item.qty} kg</td>
-                        <td className="py-3 px-4">Rp {item.price.toLocaleString('id-ID')}</td>
-                        <td className="py-3 px-4">Rp {(item.price * item.qty).toLocaleString('id-ID')}</td>
-                      </tr>
-                    ))}
-                    <tr className="border-t border-gray-600 font-bold">
-                      <td colSpan={3} className="py-3 px-4 text-right">
-                        Total Qty:
-                      </td>
-                      <td className="py-3 px-4">{getTotalQtyAllProducts(orderToView)} kg</td>
-                      <td className="py-3 px-4">Rp {getTotalAmount(orderToView).toLocaleString('id-ID')}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-6 flex justify-between">
-                <div>
-                  <button
-                    onClick={() => generatePDF(orderToView)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
-                    disabled={loading}
-                  >
-                    Download Invoice
-                  </button>
-                  <button
-                    onClick={() => generatePDFPTSATI(orderToView)}
-                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                    disabled={loading}
-                  >
-                    Download PTSATI Invoice
-                  </button>
-                </div>
-                <button
-                  onClick={resetForm}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
-                  disabled={loading}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showBulkEditModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h2 className="text-xl font-bold mb-4">Bulk Edit Order Dates</h2>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1 text-gray-300">Select Date</label>
-                <input
-                  type="date"
-                  value={bulkEditDate}
-                  onChange={(e) => setBulkEditDate(e.target.value)}
-                  className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={loading}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowBulkEditModal(false);
-                    setBulkEditDate('');
-                  }}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBulkEditSubmit}
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
-                  disabled={loading || !bulkEditDate}
-                >
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ShipmentEditModal
+          show={showShipmentEditModal}
+          loading={loading}
+          order={orderToEditShipment}
+          onClose={() => {
+            setShowShipmentEditModal(false);
+            setOrderToEditShipment(null);
+          }}
+          onSave={handleShipmentEdit}
+        />
       </div>
     </>
   );

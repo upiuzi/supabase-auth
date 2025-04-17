@@ -12,13 +12,14 @@ const navigation = [
       { name: 'Customer', link: '/customer' },
       { name: 'Product', link: '/Product' },
       { name: 'Sample', link: '/Sample' },
-      { name: 'Prospect', link: '/Prospect' },
+      
       { name: 'Exhibition', link: '/Exhibition' },
     ],
   },
   { name: 'Batch', link: '/batches', current: false },
   { name: 'Order', link: '/order', current: false },
-  { name: 'Shipment', link: '/shipment', current: false },
+  { name: 'Prospect', link: '/Prospect',current: false },
+  // { name: 'Shipment', link: '/shipment', current: false },
   {
     name: 'Report',
     current: false,
@@ -126,7 +127,7 @@ export default function Navbar2() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18v18H3zM9 3v18m6-18v18"></path>
                           </svg>
                         )}
-                        {item.name === 'Shipment' && (
+                        {item.name === 'Prospect' && (
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15h8v-4h4v-2h4v6h2M11 15v4h2M17 15v4h2" />
                             <circle cx="12" cy="19" r="2" />

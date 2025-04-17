@@ -1,0 +1,79 @@
+import { Order } from '../../type/order';
+
+interface QtyEditModalProps {
+  show: boolean;
+  loading: boolean;
+  orderId: string | null;
+  productId: string | null;
+  newQty: number;
+  orders: Order[];
+  onClose: () => void;
+  onSave: (orderId: string, productId: string, newQty: number) => void;
+  onQtyChange: (qty: number) => void;
+}
+
+const QtyEditModal: React.FC<QtyEditModalProps> = ({
+  show,
+  loading,
+  orderId,
+  productId,
+  newQty,
+  orders,
+  onClose,
+  onSave,
+  onQtyChange,
+}) => {
+  const getProductName = (productId: string, batchId: string) => {
+    const batch = orders.find((o) => o.id === orderId)?.batch_id;
+    // Simplified for brevity; in a real app, you'd fetch batch details
+    return 'Product Name'; // Replace with actual logic
+  };
+
+  if (!show || !orderId || !productId) return null;
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
+        <h2 className="text-xl font-bold mb-4">Edit Quantity</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-300">Product</label>
+          <input
+            type="text"
+            value={getProductName(productId, orders.find((o) => o.id === orderId)?.batch_id || '')}
+            className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none"
+            disabled
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-300">Quantity</label>
+          <input
+            type="number"
+            value={newQty}
+            onChange={(e) => onQtyChange(parseInt(e.target.value))}
+            className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            min="1"
+            disabled={loading}
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+            disabled={loading}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(orderId, productId, newQty)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
+            disabled={loading || isNaN(newQty) || newQty <= 0}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QtyEditModal;
