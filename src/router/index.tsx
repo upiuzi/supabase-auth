@@ -20,6 +20,9 @@ import RequestSamplePage from "../pages/RequestSamplePage.tsx";
 import PipelinePage from "../pages/PipelinePage.tsx";
 import ExhibitionPage from "../pages/ExhibitionPage.tsx";
 import AIAssistantPage from "../pages/AIAssistantPage.tsx";
+import CompanyPage from "../pages/CompanyPage.tsx";
+import BankAccountPage from "../pages/BankAccountPage.tsx";
+import PaymentLogPage from "../pages/PaymentLogPage.tsx";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -48,6 +51,18 @@ const router = createBrowserRouter([
           {
             path: "/dashboard",
             element: <DashboardPage />,
+          },
+          {
+            path: "/payments",
+            element: <PaymentLogPage />,
+          },
+          {
+            path: "/company",
+            element: <CompanyPage />,
+          },
+          {
+            path: "/bank",
+            element: <BankAccountPage />,
           },
           {
             path: "/protected",

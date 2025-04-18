@@ -14,6 +14,9 @@ const navigation = [
       { name: 'Sample', link: '/Sample' },
       
       { name: 'Exhibition', link: '/Exhibition' },
+      { name: 'Bank Account', link: '/bank' },
+      { name: 'Company', link: '/company' },
+      { name: 'Payments', link: '/payments' },
     ],
   },
   { name: 'Batch', link: '/batches', current: false },

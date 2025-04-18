@@ -1,12 +1,16 @@
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { Order, Customer, Batch } from '../../type/order';
+import { Customer, Batch } from '../../type/order';
+import { Order, Company, BankAccount } from '../../type/schema';
 
 interface OrderTableProps {
-  orders: Order[];
+  key?: 'orders' | 'shipment'; // Optional key prop
+  orders: Order[]; // Added missing orders prop
   filteredOrders: Order[];
   customers: Customer[];
   batches: Batch[];
+  companies: Company[];
+  bankAccounts: BankAccount[];
   loading: boolean;
   selectedOrders: string[];
   itemsPerPage: number;
@@ -25,10 +29,12 @@ interface OrderTableProps {
 }
 
 const OrderTable: React.FC<OrderTableProps> = ({
-  orders,
+//   orders, // Added to destructure
   filteredOrders,
   customers,
   batches,
+//   companies,
+//   bankAccounts,
   loading,
   selectedOrders,
   itemsPerPage,
@@ -61,6 +67,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
           tableElement.style.backgroundColor = '#1F2937';
         }
 
+        // Hide Actions column
         const rows = tableClone.querySelectorAll('tr');
         rows.forEach((row) => {
           const cells = row.querySelectorAll('th, td');
@@ -74,6 +81,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
         const indexOfFirstItem = indexOfLastItem - itemsPerPage;
         const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
 
+        // Format Status column
         const statusCells = tableClone.querySelectorAll('tbody tr:not(:last-child) td:nth-child(9)');
         statusCells.forEach((cell, index) => {
           if (index < currentItems.length) {
@@ -100,6 +108,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
           }
         });
 
+        // Replace OKLCH colors for export
         const replaceOklchColors = (element: HTMLElement) => {
           const computedStyle = window.getComputedStyle(element);
           if (computedStyle.backgroundColor.includes('oklch')) {
@@ -145,7 +154,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
         link.download = `order-table-${tableType}-${new Date().toISOString()}.png`;
         link.click();
       } catch (error) {
-        console.error('Error exporting camps to PNG:', error);
+        console.error('Error exporting table to PNG:', error);
         alert('Failed to export table to PNG');
       }
     }
@@ -170,6 +179,16 @@ const OrderTable: React.FC<OrderTableProps> = ({
     const batch = batches.find((b) => b.id === batchId);
     return batch ? batch.batch_id : '-';
   };
+
+//   const getCompanyName = (companyId: string) => {
+//     const company = companies.find((c) => c.id === companyId);
+//     return company ? company.company_name : '-';
+//   };
+
+//   const getBankAccountName = (bankAccountId: string) => {
+//     const bankAccount = bankAccounts.find((ba) => ba.id === bankAccountId);
+//     return bankAccount ? `${bankAccount.account_name} (${bankAccount.bank_name})` : '-';
+//   };
 
   const getProductName = (productId: string, batchId: string) => {
     const batch = batches.find((b) => b.id === batchId);
@@ -430,11 +449,15 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
                 />
               </th>
-              <th className="py-3 px-4">Order ID</th>
-              <th className="py-3 px-4">Customer</th>
-              <th className="py-3 px-4">Batch</th>
+              
+              
+              {/* <th className="py-3 px-4">Company</th>
+              <th className="py-3 px-4">Bank Account</th> */}
               {tableType === 'orders' ? (
                 <>
+                <th className="py-3 px-4">Order ID</th>
+                <th className="py-3 px-4">Customer</th>
+                <th className="py-3 px-4">Batch</th>
                   <th className="py-3 px-4">Product</th>
                   <th className="py-3 px-4">Qty</th>
                   <th className="py-3 px-4">Price</th>
@@ -442,6 +465,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </>
               ) : (
                 <>
+                 <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Shipment</th>
                   <th className="py-3 px-4">Customer Phone</th>
                   <th className="py-3 px-4">Customer Address</th>
@@ -464,11 +488,15 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
                   />
                 </td>
-                <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td>
-                <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
-                <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
+               
+                
+                {/* <td className="py-4 px-4 text-white">{getCompanyName(order.company_id)}</td>
+                <td className="py-4 px-4 text-white">{getBankAccountName(order.bank_account_id)}</td> */}
                 {tableType === 'orders' ? (
                   <>
+                   <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td>
+                   <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
+                  <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
                     <td className="py-4 px-4 text-white">
                       {order.order_items && order.order_items.length > 0 ? (
                         <div className="space-y-1">
@@ -524,6 +552,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   </>
                 ) : (
                   <>
+                  <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
                     <td className="py-4 px-4 text-white">{order.expedition || '-'}</td>
                     <td className="py-4 px-4 text-white">{getCustomerPhone(order.customer_id)}</td>
                     <td className="py-4 px-4 text-white">{getCustomerAddress(order.customer_id)}</td>
@@ -608,7 +637,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
             ))}
             {tableType === 'orders' && (
               <tr className="border-t border-gray-700 font-bold">
-                <td colSpan={5} className="py-4 px-4 text-right">
+                <td colSpan={7} className="py-4 px-4 text-right">
                   Overall Total:
                 </td>
                 <td className="py-4 px-4 text-white">

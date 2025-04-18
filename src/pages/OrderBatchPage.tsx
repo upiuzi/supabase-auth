@@ -8,6 +8,8 @@ import {
   getOrderById,
   getCustomers,
   getBatches,
+  getCompanies,
+  getBankAccounts,
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
@@ -18,7 +20,7 @@ import QtyEditModal from '../components/orders/QtyEditModal';
 import BulkEditModal from '../components/orders/BulkEditModal';
 import ShipmentEditModal from '../components/orders/ShipmentEditModal';
 import TotalQtySection from '../components/orders/TotalQtySection';
-import { Order, Customer, Batch, FormData, OrderItem } from '../type/order';
+import { Order, Customer, Batch, OrderItem, Company, BankAccount } from '../type/schema';
 
 // Extend jsPDF with autoTable plugin types
 declare module 'jspdf' {
@@ -30,11 +32,25 @@ declare module 'jspdf' {
   }
 }
 
+// Perbarui tipe FormData untuk menyertakan company_id dan bank_account_id
+interface FormData {
+  customer_id: string;
+  batch_id: string;
+  company_id: string; // Tambahkan
+  bank_account_id: string; // Tambahkan
+  status: 'pending' | 'confirmed' | 'cancelled';
+  order_items: OrderItem[];
+  expedition: string;
+  description: string;
+}
+
 const OrderPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]); // Tambahkan state untuk companies
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]); // Tambahkan state untuk bank accounts
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -60,6 +76,8 @@ const OrderPage: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     customer_id: '',
     batch_id: '',
+    company_id: '', // Tambahkan
+    bank_account_id: '', // Tambahkan
     status: 'pending',
     order_items: [],
     expedition: '',
@@ -73,6 +91,8 @@ const OrderPage: React.FC = () => {
     fetchOrders();
     fetchCustomers();
     fetchBatches();
+    fetchCompanies(); // Tambahkan
+    fetchBankAccounts(); // Tambahkan
   }, []);
 
   useEffect(() => {
@@ -80,6 +100,26 @@ const OrderPage: React.FC = () => {
       applyFilters(orders);
     }
   }, [batchIdFilter, orders, searchQuery]);
+
+  // Tambahkan fungsi untuk mengambil companies
+  const fetchCompanies = async () => {
+    try {
+      const data = await getCompanies();
+      setCompanies(data);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
+
+  // Tambahkan fungsi untuk mengambil bank accounts
+  const fetchBankAccounts = async () => {
+    try {
+      const data = await getBankAccounts();
+      setBankAccounts(data);
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -139,7 +179,15 @@ const OrderPage: React.FC = () => {
           customers
             .find((c) => c.id === order.customer_id)
             ?.address?.toLowerCase()
-            .includes(query)
+            .includes(query) ||
+          companies
+            .find((c) => c.id === order.company_id)
+            ?.company_name.toLowerCase()
+            .includes(query) || // Tambahkan filter untuk company
+          bankAccounts
+            .find((ba) => ba.id === order.bank_account_id)
+            ?.account_name.toLowerCase()
+            .includes(query) // Tambahkan filter untuk bank account
       );
     }
     setFilteredOrders(filtered);
@@ -216,6 +264,8 @@ const OrderPage: React.FC = () => {
     try {
       if (!formData.customer_id) throw new Error('Please select a customer');
       if (!formData.batch_id) throw new Error('Please select a batch');
+      if (!formData.company_id) throw new Error('Please select a company'); // Validasi
+      if (!formData.bank_account_id) throw new Error('Please select a bank account'); // Validasi
       if (formData.order_items.length === 0)
         throw new Error('Please add at least one product to the order');
 
@@ -248,6 +298,8 @@ const OrderPage: React.FC = () => {
           {
             customer_id: formData.customer_id,
             batch_id: formData.batch_id,
+            company_id: formData.company_id, // Tambahkan
+            bank_account_id: formData.bank_account_id, // Tambahkan
             status: formData.status,
             expedition: formData.expedition,
             description: formData.description,
@@ -259,6 +311,8 @@ const OrderPage: React.FC = () => {
           {
             customer_id: formData.customer_id,
             batch_id: formData.batch_id,
+            company_id: formData.company_id, // Tambahkan
+            bank_account_id: formData.bank_account_id, // Tambahkan
             status: formData.status,
             expedition: formData.expedition,
             description: formData.description,
@@ -333,6 +387,8 @@ const OrderPage: React.FC = () => {
             {
               ...order,
               created_at: bulkEditDate,
+              company_id: order.company_id, // Pastikan tetap ada
+              bank_account_id: order.bank_account_id, // Pastikan tetap ada
             },
             order.order_items?.map((item) => ({
               product_id: item.product_id,
@@ -373,6 +429,8 @@ const OrderPage: React.FC = () => {
         orderId,
         {
           ...order,
+          company_id: order.company_id, // Pastikan tetap ada
+          bank_account_id: order.bank_account_id, // Pastikan tetap ada
         },
         updatedOrderItems
       );
@@ -405,6 +463,8 @@ const OrderPage: React.FC = () => {
         {
           ...order,
           status: newStatus,
+          company_id: order.company_id, // Pastikan tetap ada
+          bank_account_id: order.bank_account_id, // Pastikan tetap ada
         },
         order.order_items?.map((item) => ({
           product_id: item.product_id,
@@ -434,6 +494,8 @@ const OrderPage: React.FC = () => {
           ...order,
           expedition,
           description,
+          company_id: order.company_id, // Pastikan tetap ada
+          bank_account_id: order.bank_account_id, // Pastikan tetap ada
         },
         order.order_items?.map((item) => ({
           product_id: item.product_id,
@@ -460,6 +522,8 @@ const OrderPage: React.FC = () => {
     setFormData({
       customer_id: '',
       batch_id: '',
+      company_id: '', // Tambahkan
+      bank_account_id: '', // Tambahkan
       status: 'pending',
       order_items: [],
       expedition: '',
@@ -505,7 +569,7 @@ const OrderPage: React.FC = () => {
           </div>
         </div>
 
-        <TotalQtySection filteredOrders={filteredOrders} batches={batches} />
+        <TotalQtySection filteredOrders={filteredOrders} batches={batches} companies={[]} />
 
         <div className="mb-6">
           <div className="relative">
@@ -575,6 +639,8 @@ const OrderPage: React.FC = () => {
             filteredOrders={filteredOrders}
             customers={customers}
             batches={batches}
+            companies={companies} // Tambahkan
+            bankAccounts={bankAccounts} // Tambahkan
             loading={loading}
             selectedOrders={selectedOrders}
             itemsPerPage={itemsPerPage}
@@ -602,6 +668,8 @@ const OrderPage: React.FC = () => {
               setFormData({
                 customer_id: order.customer_id,
                 batch_id: order.batch_id,
+                company_id: order.company_id, // Tambahkan
+                bank_account_id: order.bank_account_id, // Tambahkan
                 status: order.status,
                 expedition: order.expedition || '',
                 description: order.description || '',
@@ -631,6 +699,8 @@ const OrderPage: React.FC = () => {
           formData={formData}
           customers={customers}
           batches={batches}
+          companies={companies} // Tambahkan
+          bankAccounts={bankAccounts} // Tambahkan
           isEdit={showEditModal}
           onClose={resetForm}
           onSubmit={handleSubmit}
@@ -652,6 +722,8 @@ const OrderPage: React.FC = () => {
           order={orderToView}
           customers={customers}
           batches={batches}
+          companies={companies} // Tambahkan
+          bankAccounts={bankAccounts} // Tambahkan
           loading={loading}
           onClose={resetForm}
         />
@@ -668,10 +740,9 @@ const OrderPage: React.FC = () => {
             setSelectedOrderId(null);
             setSelectedProductId(null);
             setNewQty(0);
-          }}
+          } }
           onSave={handleQtyChange}
-          onQtyChange={setNewQty}
-        />
+          onQtyChange={setNewQty} batches={[]}        />
 
         <BulkEditModal
           show={showBulkEditModal}
@@ -692,9 +763,8 @@ const OrderPage: React.FC = () => {
           onClose={() => {
             setShowShipmentEditModal(false);
             setOrderToEditShipment(null);
-          }}
-          onSave={handleShipmentEdit}
-        />
+          } }
+          onSave={handleShipmentEdit} companies={[]} bankAccounts={[]}        />
       </div>
     </>
   );

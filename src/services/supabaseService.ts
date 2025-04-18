@@ -1,14 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { Customer, Product, Batch, Order } from "../type/schema";
-
-
-
-// Inisialisasi Supabase client
-// const supabaseUrl = 'https://yonkghtpwajrnevhbsqp.supabase.co';
-// const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvbmtnaHRwd2Fqcm5ldmhic3FwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzNDYxMzMsImV4cCI6MjA1NjkyMjEzM30.EhS8XiErvaXf7kyf-SULEhpyRMf070JkgzItggfkr4w';
-
+import { Company, BankAccount, Customer, Product, Batch, Order, OrderItem, Pipeline, Exhibition, BatchProduct, BatchShipment, PaymentLog } from "../type/schema";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../config";
-
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -21,6 +13,247 @@ const handleSupabaseError = (error: any) => {
   throw error;
 };
 
+// Company functions
+export const getCompanies = async (): Promise<Company[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('company')
+      .select('*, bank_accounts(*)')
+      .order('created_at');
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return [];
+    }
+    throw error;
+  }
+};
+
+export const getDefaultCompany = async (): Promise<Company | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('company')
+      .select('*, bank_accounts(*)')
+      .eq('is_default', true)
+      .single();
+      
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const getCompanyById = async (id: string): Promise<Company | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('company')
+      .select('*, bank_accounts(*)')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const createCompany = async (company: Omit<Company, 'id' | 'created_at' | 'updated_at' | 'bank_accounts'>): Promise<Company> => {
+  try {
+    const { data, error } = await supabase
+      .from('company')
+      .insert([{
+        company_name: company.company_name,
+        phone: company.phone,
+        address: company.address,
+        email: company.email,
+        is_default: company.is_default || false,
+      }])
+      .select('*, bank_accounts(*)')
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const updateCompany = async (id: string, company: Partial<Omit<Company, 'id' | 'created_at' | 'updated_at' | 'bank_accounts'>>): Promise<Company> => {
+  try {
+    const { data, error } = await supabase
+      .from('company')
+      .update({
+        company_name: company.company_name,
+        phone: company.phone,
+        address: company.address,
+        email: company.email,
+        is_default: company.is_default,
+      })
+      .eq('id', id)
+      .select('*, bank_accounts(*)')
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const deleteCompany = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('company')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+// Bank Account functions
+export const getBankAccounts = async (companyId?: string): Promise<BankAccount[]> => {
+  try {
+    let query = supabase
+      .from('bank_accounts')
+      .select('*')
+      .order('created_at');
+      
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    }
+      
+    const { data, error } = await query;
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return [];
+    }
+    throw error;
+  }
+};
+
+export const getDefaultBankAccount = async (): Promise<BankAccount | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('is_default', true)
+      .single();
+      
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const getBankAccountById = async (id: string): Promise<BankAccount | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    if (handleSupabaseError(error) === null) {
+      return null;
+    }
+    throw error;
+  }
+};
+
+export const createBankAccount = async (bankAccount: Omit<BankAccount, 'id' | 'created_at' | 'updated_at'>): Promise<BankAccount> => {
+  try {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .insert([{
+        company_id: bankAccount.company_id,
+        account_name: bankAccount.account_name,
+        account_number: bankAccount.account_number,
+        bank_name: bankAccount.bank_name,
+        balance: bankAccount.balance,
+        is_default: bankAccount.is_default || false,
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const updateBankAccount = async (id: string, bankAccount: Partial<Omit<BankAccount, 'id' | 'created_at' | 'updated_at'>>): Promise<BankAccount> => {
+  try {
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .update({
+        company_id: bankAccount.company_id,
+        account_name: bankAccount.account_name,
+        account_number: bankAccount.account_number,
+        bank_name: bankAccount.bank_name,
+        balance: bankAccount.balance,
+        is_default: bankAccount.is_default,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const deleteBankAccount = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('bank_accounts')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+// Customer functions
 export const getCustomerPhoneByName = async (name: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase
@@ -31,7 +264,7 @@ export const getCustomerPhoneByName = async (name: string): Promise<string | nul
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // no rows
+      if (error.code === 'PGRST116') return null;
       throw error;
     }
     return data?.phone ?? null;
@@ -41,7 +274,6 @@ export const getCustomerPhoneByName = async (name: string): Promise<string | nul
   }
 };
 
-// Customer functions
 export const getCustomers = async (): Promise<Customer[]> => {
   try {
     const { data, error } = await supabase
@@ -84,7 +316,7 @@ export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Cu
       .insert([{ 
         ...customer,
         brand: customer.brand,
-        city: customer.city // Tambahkan ini
+        city: customer.city
       }])
       .select()
       .single();
@@ -104,7 +336,7 @@ export const updateCustomer = async (id: string, customer: Partial<Customer>): P
       .update({
         ...customer,
         brand: customer.brand,
-        city: customer.city // Tambahkan ini
+        city: customer.city
       })
       .eq('id', id)
       .select()
@@ -259,7 +491,7 @@ export const getBatchById = async (id: string): Promise<Batch | null> => {
 };
 
 export const createBatch = async (
-  batch: Omit<Batch, 'id' | 'products'>,
+  batch: Omit<Batch, 'id' | 'batch_products'>,
   batchProducts: { product_id: string; initial_qty: number; remaining_qty: number }[]
 ): Promise<Batch> => {
   const { data: batchData, error: batchError } = await supabase
@@ -290,11 +522,10 @@ export const createBatch = async (
 
 export const updateBatch = async (
   id: string,
-  batch: Partial<Omit<Batch, 'id' | 'products'>>,
+  batch: Partial<Omit<Batch, 'id' | 'batch_products'>>,
   batchProducts?: { id?: string; product_id: string; initial_qty: number; remaining_qty: number }[]
 ): Promise<Batch> => {
   try {
-    // Update the batch details
     const { error: batchError } = await supabase
       .from('batches')
       .update({
@@ -306,7 +537,6 @@ export const updateBatch = async (
     if (batchError) throw batchError;
 
     if (batchProducts && batchProducts.length > 0) {
-      // Fetch existing batch_products for this batch
       const { data: existingProducts, error: fetchError } = await supabase
         .from('batch_products')
         .select('*')
@@ -314,10 +544,8 @@ export const updateBatch = async (
 
       if (fetchError) throw fetchError;
 
-      // const existingProductIds = existingProducts.map(bp => bp.product_id);
       const newProductIds = batchProducts.map(bp => bp.product_id);
 
-      // Delete products that are no longer in the batch
       const productsToDelete = existingProducts.filter(
         ep => !newProductIds.includes(ep.product_id)
       );
@@ -330,7 +558,6 @@ export const updateBatch = async (
         if (deleteError) throw deleteError;
       }
 
-      // Prepare upsert data
       const upsertData = batchProducts.map(bp => ({
         batch_id: id,
         product_id: bp.product_id,
@@ -338,17 +565,15 @@ export const updateBatch = async (
         remaining_qty: bp.remaining_qty,
       }));
 
-      // Upsert batch_products (updates existing, inserts new)
       const { error: upsertError } = await supabase
         .from('batch_products')
         .upsert(upsertData, {
-          onConflict: 'batch_id,product_id', // Handle conflicts on these columns
+          onConflict: 'batch_id,product_id',
         });
 
       if (upsertError) throw upsertError;
     }
 
-    // Return the updated batch with all related data
     return getBatchById(id) as Promise<Batch>;
   } catch (error) {
     handleSupabaseError(error);
@@ -385,106 +610,124 @@ export const deleteBatch = async (id: string): Promise<void> => {
 
 // Order functions
 export const getOrders = async (): Promise<Order[]> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*, customers(*), order_items(*, product:products(*))')
-    .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        customers(*),
+        company(*),
+        bank_accounts(*),
+        order_items(*, product:products(*)),
+        payment_logs(*)
+      `)
+      .order('created_at', { ascending: false });
     
-  if (error) {
-    console.error('Supabase error in getOrders:', error);
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    handleSupabaseError(error);
     throw error;
   }
-  return data || [];
 };
 
 export const getOrderById = async (id: string): Promise<Order | null> => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select('*, customers(*), order_items(*, product:products(*))')
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        customers(*),
+        company(*),
+        bank_accounts(*),
+        order_items(*, product:products(*)),
+        payment_logs(*)
+      `)
+      .eq('id', id)
+      .single();
     
-  if (error) {
-    console.error('Supabase error in getOrderById:', error);
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleSupabaseError(error);
     throw error;
   }
-  return data;
 };
 
 export const createOrder = async (
   order: { 
     customer_id: string; 
     batch_id: string; 
+    company_id: string;
+    bank_account_id: string;
     status: string;
     expedition?: string;
     description?: string;
   },
   orderItems: { product_id: string; qty: number; price: number; }[]
 ): Promise<Order> => {
-  const { 
-    data: orderData, 
-    error: orderError } = await supabase
-    .from('orders')
-    .insert([{ 
-      customer_id: order.customer_id,
-      batch_id: order.batch_id,
-      status: order.status,
-      expedition: order.expedition,
-      description: order.description,
-      created_at: new Date().toISOString() 
-    }])
-    .select()
-    .single();
-    
-  if (orderError) {
-    console.error('Supabase error in createOrder (order insert):', orderError);
-    throw orderError;
-  }
-  
-  const orderItemsWithOrderId = orderItems.map(item => ({
-    ...item,
-    order_id: orderData.id
-  }));
-  
-  const { error: itemsError } = await supabase
-    .from('order_items')
-    .insert(orderItemsWithOrderId);
-    
-  if (itemsError) {
-    console.error('Supabase error in createOrder (order items insert):', itemsError);
-    throw itemsError;
-  }
-  
-  for (const item of orderItems) {
-    const { data: batchProduct, error: bpError } = await supabase
-      .from('batch_products')
-      .select('*')
-      .eq('batch_id', order.batch_id)
-      .eq('product_id', item.product_id)
+  try {
+    // Hitung total_amount dari order_items
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert([{ 
+        customer_id: order.customer_id,
+        batch_id: order.batch_id,
+        company_id: order.company_id,
+        bank_account_id: order.bank_account_id,
+        status: order.status,
+        expedition: order.expedition,
+        description: order.description,
+        total_amount: totalAmount,
+        paid_amount: 0,
+        payment_status: 'unpaid',
+        created_at: new Date().toISOString() 
+      }])
+      .select()
       .single();
-      
-    if (bpError) {
-      console.error('Supabase error in createOrder (batch product fetch):', bpError);
-      throw bpError;
-    }
     
-    if (batchProduct) {
-      const { error: updateError } = await supabase
+    if (orderError) throw orderError;
+  
+    const orderItemsWithOrderId = orderItems.map(item => ({
+      ...item,
+      order_id: orderData.id
+    }));
+  
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItemsWithOrderId);
+    
+    if (itemsError) throw itemsError;
+  
+    for (const item of orderItems) {
+      const { data: batchProduct, error: bpError } = await supabase
         .from('batch_products')
-        .update({ 
-          remaining_qty: batchProduct.remaining_qty - item.qty 
-        })
-        .eq('id', batchProduct.id)
-        .select();
+        .select('*')
+        .eq('batch_id', order.batch_id)
+        .eq('product_id', item.product_id)
+        .single();
+      
+      if (bpError) throw bpError;
+    
+      if (batchProduct) {
+        const { error: updateError } = await supabase
+          .from('batch_products')
+          .update({ 
+            remaining_qty: batchProduct.remaining_qty - item.qty 
+          })
+          .eq('id', batchProduct.id);
         
-      if (updateError) {
-        console.error('Supabase error in createOrder (batch product update):', updateError);
-        throw updateError;
+        if (updateError) throw updateError;
       }
     }
-  }
   
-  return getOrderById(orderData.id) as Promise<Order>;
+    return getOrderById(orderData.id) as Promise<Order>;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
 };
 
 export const updateOrder = async (
@@ -492,6 +735,8 @@ export const updateOrder = async (
   order: {
     customer_id: string;
     batch_id: string;
+    company_id: string;
+    bank_account_id: string;
     status: 'pending' | 'confirmed' | 'cancelled';
     expedition?: string;
     description?: string;
@@ -500,46 +745,53 @@ export const updateOrder = async (
   orderItems: { product_id: string; qty: number; price: number }[]
 ): Promise<Order> => {
   try {
-    // Fetch original order with items
+    const totalAmount = orderItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    
     const { data: originalOrder, error: fetchError } = await supabase
       .from('orders')
-      .select('*, order_items(*), batch_id')
+      .select('*, order_items(*), batch_id, paid_amount, payment_status')
       .eq('id', id)
       .single();
 
-    if (fetchError) {
-      console.error('Supabase error in updateOrder (fetching original order):', fetchError);
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
-    // Update order and items using RPC for atomicity
-    const { error: updateError } = await supabase.rpc('update_order_with_items', {
-      p_order_id: id,
-      p_order_data: {
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
         customer_id: order.customer_id,
         batch_id: order.batch_id,
+        company_id: order.company_id,
+        bank_account_id: order.bank_account_id,
         status: order.status,
         expedition: order.expedition,
         description: order.description,
-        created_at: order.created_at,
-      },
-      p_order_items: orderItems.map((item) => ({
-        product_id: item.product_id,
-        qty: item.qty,
-        price: item.price,
-      })),
-    });
+        total_amount: totalAmount,
+      })
+      .eq('id', id);
 
-    if (updateError) {
-      console.error('Supabase error in updateOrder (updating order):', updateError);
-      throw updateError;
-    }
+    if (updateError) throw updateError;
 
-    // Handle batch product quantity updates
+    const { error: deleteItemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .eq('order_id', id);
+
+    if (deleteItemsError) throw deleteItemsError;
+
+    const orderItemsWithOrderId = orderItems.map(item => ({
+      ...item,
+      order_id: id
+    }));
+
+    const { error: insertItemsError } = await supabase
+      .from('order_items')
+      .insert(orderItemsWithOrderId);
+
+    if (insertItemsError) throw insertItemsError;
+
     const originalItems: OrderItem[] = originalOrder.order_items || [];
     const batchId = order.batch_id || originalOrder.batch_id;
 
-    // Process updated or new items
     for (const updatedItem of orderItems) {
       const originalItem = originalItems.find(
         (item) => item.product_id === updatedItem.product_id
@@ -547,15 +799,12 @@ export const updateOrder = async (
       let qtyDifference = 0;
 
       if (originalItem) {
-        // Calculate difference: original_qty - updated_qty
         qtyDifference = originalItem.qty - updatedItem.qty;
       } else {
-        // New item, treat as negative difference (reduce stock)
         qtyDifference = -updatedItem.qty;
       }
 
       if (qtyDifference !== 0) {
-        // Fetch batch product
         const { data: batchProduct, error: bpError } = await supabase
           .from('batch_products')
           .select('remaining_qty')
@@ -563,17 +812,11 @@ export const updateOrder = async (
           .eq('product_id', updatedItem.product_id)
           .single();
 
-        if (bpError || !batchProduct) {
-          console.error('Supabase error in updateOrder (fetching batch product):', bpError);
-          throw new Error(`Product ${updatedItem.product_id} not found in batch ${batchId}`);
-        }
+        if (bpError || !batchProduct) throw bpError;
 
-        // Update remaining_qty: add qtyDifference (positive = return stock, negative = reduce stock)
         const newRemainingQty = batchProduct.remaining_qty + qtyDifference;
         if (newRemainingQty < 0) {
-          throw new Error(
-            `Insufficient quantity for product ${updatedItem.product_id}. Available: ${batchProduct.remaining_qty}, Requested: ${updatedItem.qty}`
-          );
+          throw new Error(`Insufficient quantity for product ${updatedItem.product_id}`);
         }
 
         const { error: updateQtyError } = await supabase
@@ -582,17 +825,12 @@ export const updateOrder = async (
           .eq('batch_id', batchId)
           .eq('product_id', updatedItem.product_id);
 
-        if (updateQtyError) {
-          console.error('Supabase error in updateOrder (updating batch product qty):', updateQtyError);
-          throw updateQtyError;
-        }
+        if (updateQtyError) throw updateQtyError;
       }
     }
 
-    // Process removed items
     for (const originalItem of originalItems) {
       if (!orderItems.find((item) => item.product_id === originalItem.product_id)) {
-        // Item was removed, return its quantity to batch
         const { data: batchProduct, error: bpError } = await supabase
           .from('batch_products')
           .select('remaining_qty')
@@ -600,10 +838,7 @@ export const updateOrder = async (
           .eq('product_id', originalItem.product_id)
           .single();
 
-        if (bpError || !batchProduct) {
-          console.error('Supabase error in updateOrder (fetching batch product for removed item):', bpError);
-          throw new Error(`Product ${originalItem.product_id} not found in batch ${batchId}`);
-        }
+        if (bpError || !batchProduct) throw bpError;
 
         const newRemainingQty = batchProduct.remaining_qty + originalItem.qty;
 
@@ -613,60 +848,48 @@ export const updateOrder = async (
           .eq('batch_id', batchId)
           .eq('product_id', originalItem.product_id);
 
-        if (updateQtyError) {
-          console.error('Supabase error in updateOrder (updating batch product qty for removed item):', updateQtyError);
-          throw updateQtyError;
-        }
+        if (updateQtyError) throw updateQtyError;
       }
     }
 
-    // Fetch and return updated order
     return getOrderById(id) as Promise<Order>;
   } catch (error) {
-    console.error('Supabase error in updateOrder:', error);
     handleSupabaseError(error);
     throw error;
   }
 };
 
 export const updateOrderStatus = async (id: string, status: 'pending' | 'confirmed' | 'cancelled'): Promise<void> => {
+  try {
     const { error } = await supabase
       .from('orders')
       .update({ status })
-      .eq('id', id)
-      .select();
-      
-    if (error) {
-      console.error('Supabase error in updateOrderStatus:', error);
-      throw error;
-    }
+      .eq('id', id);
+    
+    if (error) throw error;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
 };
-
-
 
 export const deleteOrder = async (id: string): Promise<void> => {
   try {
-    // 1. Ambil data order beserta order_items dan batch_id
     const { data: orderData, error: fetchError } = await supabase
       .from('orders')
-      .select('batch_id, order_items (*)') // Pastikan relasi order_items sudah benar di schema
+      .select('batch_id, order_items (*)')
       .eq('id', id)
       .single();
 
-    if (fetchError) {
-      console.error('Supabase error in deleteOrder (fetching order):', fetchError);
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
     if (!orderData || !orderData.order_items || !orderData.batch_id) {
       throw new Error('Order not found or has no items/batch associated');
     }
 
-    // 2. Kembalikan remaining_qty untuk setiap item di batch_products
     for (const item of orderData.order_items) {
       const { product_id, qty } = item;
 
-      // Ambil data batch_product
       const { data: batchProduct, error: bpError } = await supabase
         .from('batch_products')
         .select('remaining_qty')
@@ -674,12 +897,8 @@ export const deleteOrder = async (id: string): Promise<void> => {
         .eq('product_id', product_id)
         .single();
 
-      if (bpError || !batchProduct) {
-        console.error('Supabase error in deleteOrder (fetching batch product):', bpError);
-        throw bpError;
-      }
+      if (bpError || !batchProduct) throw bpError;
 
-      // Update remaining_qty
       const newRemainingQty = batchProduct.remaining_qty + qty;
 
       const { error: updateError } = await supabase
@@ -688,47 +907,153 @@ export const deleteOrder = async (id: string): Promise<void> => {
         .eq('batch_id', orderData.batch_id)
         .eq('product_id', product_id);
 
-      if (updateError) {
-        console.error('Supabase error in deleteOrder (updating batch product):', updateError);
-        throw updateError;
-      }
+      if (updateError) throw updateError;
     }
 
-    // 3. Hapus order_items
     const { error: itemsError } = await supabase
       .from('order_items')
       .delete()
       .eq('order_id', id);
 
-    if (itemsError) {
-      console.error('Supabase error in deleteOrder (deleting order items):', itemsError);
-      throw itemsError;
-    }
+    if (itemsError) throw itemsError;
 
-    // 4. Hapus order
     const { error: orderError } = await supabase
       .from('orders')
       .delete()
       .eq('id', id);
 
-    if (orderError) {
-      console.error('Supabase error in deleteOrder (deleting order):', orderError);
-      throw orderError;
-    }
-
-    console.log(`Order ${id} deleted successfully, quantities restored`);
+    if (orderError) throw orderError;
   } catch (error) {
-    console.error('Supabase error in deleteOrder:', error);
+    handleSupabaseError(error);
     throw error;
   }
 };
 
-export type { Customer };
-export type { Product };
-export type { Batch };
-export type { Order };
+// Payment Log functions
+export const createPaymentLog = async (
+  orderId: string,
+  amount: number,
+  paymentDate: string,
+  paymentMethod?: string,
+  notes?: string
+): Promise<void> => {
+  try {
+    const { error: logError } = await supabase
+      .from('payment_logs')
+      .insert([{
+        order_id: orderId,
+        amount,
+        payment_date: paymentDate,
+        payment_method: paymentMethod,
+        notes,
+      }]);
+    if (logError) throw logError;
 
-// Sample functions
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('paid_amount, total_amount')
+      .eq('id', orderId)
+      .single();
+    if (orderError) throw orderError;
+
+    const newPaidAmount = (orderData.paid_amount || 0) + amount;
+
+    let paymentStatus: 'unpaid' | 'partial' | 'paid' = 'unpaid';
+    if (newPaidAmount > 0 && newPaidAmount < orderData.total_amount) {
+      paymentStatus = 'partial';
+    } else if (newPaidAmount >= orderData.total_amount) {
+      paymentStatus = 'paid';
+    }
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        paid_amount: newPaidAmount,
+        payment_status: paymentStatus,
+      })
+      .eq('id', orderId);
+    if (updateError) throw updateError;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const getPaymentLogsByOrderId = async (orderId: string): Promise<PaymentLog[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('payment_logs')
+      .select('*')
+      .eq('order_id', orderId)
+      .order('payment_date', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+export const deletePaymentLog = async (id: string): Promise<void> => {
+  try {
+    // Fetch the payment log to get its amount and order_id
+    const { data: paymentLog, error: fetchError } = await supabase
+      .from('payment_logs')
+      .select('amount, order_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!paymentLog) throw new Error('Payment log not found');
+
+    const { order_id, amount } = paymentLog;
+
+    // Delete the payment log
+    const { error: deleteError } = await supabase
+      .from('payment_logs')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    // Fetch the order to update paid_amount and payment_status
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('paid_amount, total_amount')
+      .eq('id', order_id)
+      .single();
+
+    if (orderError) throw orderError;
+    if (!orderData) throw new Error('Order not found');
+
+    // Calculate new paid_amount
+    const newPaidAmount = Math.max(0, (orderData.paid_amount || 0) - amount);
+
+    // Determine new payment_status
+    let paymentStatus: 'unpaid' | 'partial' | 'paid' = 'unpaid';
+    if (newPaidAmount > 0 && newPaidAmount < orderData.total_amount) {
+      paymentStatus = 'partial';
+    } else if (newPaidAmount >= orderData.total_amount) {
+      paymentStatus = 'paid';
+    }
+
+    // Update the order
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        paid_amount: newPaidAmount,
+        payment_status: paymentStatus,
+      })
+      .eq('id', order_id);
+
+    if (updateError) throw updateError;
+  } catch (error) {
+    handleSupabaseError(error);
+    throw error;
+  }
+};
+
+// Sample, Pipeline, Exhibition functions
 export const getSamples = async () => {
   const { data, error } = await supabase
     .from('samples')
@@ -834,9 +1159,6 @@ export const deleteSample = async (id: string) => {
   if (error) throw error;
 };
 
-// Pipeline functions
-import type { OrderItem, Pipeline } from '../type/schema';
-
 export const getPipelines = async (): Promise<Pipeline[]> => {
   try {
     const { data, error } = await supabase
@@ -909,9 +1231,6 @@ export const deletePipeline = async (id: string): Promise<void> => {
   }
 };
 
-// Exhibition functions
-import type { Exhibition } from '../type/schema';
-
 export const getExhibitions = async (): Promise<Exhibition[]> => {
   try {
     const { data, error } = await supabase
@@ -971,3 +1290,6 @@ export const deleteExhibition = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+// Export types
+export type { Company, BankAccount, Customer, Product, Batch, Order, OrderItem, Pipeline, Exhibition, BatchProduct, BatchShipment, PaymentLog };

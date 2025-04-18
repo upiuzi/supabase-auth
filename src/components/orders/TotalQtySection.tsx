@@ -1,11 +1,14 @@
-import { Order, Batch } from '../../type/order';
+import { Batch } from '../../type/order';
+
+import { Order, Company } from '../../type/schema';
 
 interface TotalQtySectionProps {
   filteredOrders: Order[];
   batches: Batch[];
+  companies: Company[];
 }
 
-const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batches }) => {
+const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batches, companies }) => {
   const getProductName = (productId: string, batchId: string) => {
     const batch = batches.find((b) => b.id === batchId);
     if (batch && batch.batch_products) {
@@ -15,6 +18,11 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
       }
     }
     return 'Unknown Product';
+  };
+
+  const getCompanyName = (companyId: string) => {
+    const company = companies.find((c) => c.id === companyId);
+    return company ? company.company_name : '-';
   };
 
   const getInitialQty = (productId: string, batchId: string) => {
@@ -29,7 +37,7 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
   const getTotalQtyPerProduct = () => {
     const totalQtyByProduct: Record<
       string,
-      { orderedQty: number; initialQty: number; batchId: string }
+      { orderedQty: number; initialQty: number; batchId: string; companyId: string }
     > = {};
 
     filteredOrders.forEach((order) => {
@@ -43,6 +51,7 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
               orderedQty: 0,
               initialQty: initialQty,
               batchId: order.batch_id,
+              companyId: order.company_id,
             };
           }
           totalQtyByProduct[productName].orderedQty += item.qty;
@@ -62,10 +71,10 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
         {Object.keys(totalQtyByProduct).length === 0 ? (
           <p className="text-gray-400">No products ordered yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2" role="list" aria-label="Total production quantities">
             {Object.entries(totalQtyByProduct).map(([productName, data]) => (
               <li key={productName} className="text-gray-200">
-                <span className="font-medium">{productName}:</span>{' '}
+                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
                 {data.initialQty} kg
               </li>
             ))}
@@ -78,10 +87,11 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
         {Object.keys(totalQtyByProduct).length === 0 ? (
           <p className="text-gray-400">No products ordered yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2" role="list" aria-label="Total ordered quantities">
             {Object.entries(totalQtyByProduct).map(([productName, data]) => (
               <li key={productName} className="text-gray-200">
-                <span className="font-medium">{productName}:</span> {data.orderedQty} kg
+                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
+                {data.orderedQty} kg
               </li>
             ))}
           </ul>
