@@ -14,6 +14,7 @@ const CustomerPage = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'customer' | 'whatsapp' | null>(null); // State untuk jenis modal
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ const CustomerPage = () => {
     city: '',
     email: ''
   });
+  const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,6 +49,51 @@ const CustomerPage = () => {
     }
   };
 
+  const sendWhatsAppToAll = async () => {
+    if (!whatsappMessage.trim()) {
+      alert('Masukkan pesan WhatsApp terlebih dahulu!');
+      return;
+    }
+
+    setSendingWhatsApp(true);
+    const customersWithPhone = filteredCustomers.filter(customer => customer.phone);
+
+    for (let i = 0; i < customersWithPhone.length; i++) {
+      const customer = customersWithPhone[i];
+      try {
+        const response = await fetch('https://wagt.satcoconut.com/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sessionId: '6281122244446',
+            to: customer.phone,
+            text: whatsappMessage
+          })
+        });
+
+        if (response.ok) {
+          console.log(`Pesan WhatsApp berhasil dikirim ke ${customer.name} (${customer.phone})`);
+        } else {
+          console.error(`Gagal mengirim WhatsApp ke ${customer.name}`);
+        }
+
+        if (i < customersWithPhone.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 30000));
+        }
+      } catch (error) {
+        console.error(`Error mengirim WhatsApp ke ${customer.name}:`, error);
+      }
+    }
+
+    setSendingWhatsApp(false);
+    setWhatsappMessage('');
+    setShowModal(false); // Tutup modal setelah selesai
+    setModalType(null);
+    alert('Pengiriman WhatsApp selesai!');
+  };
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
@@ -58,7 +106,7 @@ const CustomerPage = () => {
       customer.email?.toLowerCase().includes(query)
     );
     setFilteredCustomers(filtered);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +145,7 @@ const CustomerPage = () => {
       city: customer.city || '',
       email: customer.email || ''
     });
+    setModalType('customer');
     setShowModal(true);
   };
 
@@ -119,6 +168,7 @@ const CustomerPage = () => {
 
   const resetForm = () => {
     setShowModal(false);
+    setModalType(null);
     setSelectedCustomer(null);
     setFormData({
       name: '',
@@ -138,24 +188,20 @@ const CustomerPage = () => {
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Function to generate pagination buttons with ellipsis
   const getPaginationButtons = () => {
-    const maxVisibleButtons = 5; // Maximum number of page buttons to show at once
+    const maxVisibleButtons = 5;
     const buttons: (number | string)[] = [];
     let startPage: number;
     let endPage: number;
 
     if (totalPages <= maxVisibleButtons) {
-      // If total pages are less than or equal to max visible buttons, show all pages
       startPage = 1;
       endPage = totalPages;
     } else {
-      // Calculate the range of pages to show
       const halfVisible = Math.floor(maxVisibleButtons / 2);
       startPage = Math.max(1, currentPage - halfVisible);
       endPage = Math.min(totalPages, currentPage + halfVisible);
 
-      // Adjust start and end if they don't fit the maxVisibleButtons range
       if (endPage - startPage + 1 < maxVisibleButtons) {
         if (currentPage <= halfVisible + 1) {
           endPage = maxVisibleButtons;
@@ -165,7 +211,6 @@ const CustomerPage = () => {
       }
     }
 
-    // Add ellipsis and pages
     if (startPage > 1) {
       buttons.push(1);
       if (startPage > 2) buttons.push('...');
@@ -192,15 +237,32 @@ const CustomerPage = () => {
             <h1 className="text-3xl font-bold">Customers</h1>
             <p className="text-gray-400 mt-1">Manage your customer database</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Customer
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setModalType('customer');
+                setShowModal(true);
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Customer
+            </button>
+            <button
+              onClick={() => {
+                setModalType('whatsapp');
+                setShowModal(true);
+              }}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              Kirim WhatsApp ke Semua
+            </button>
+          </div>
         </div>
 
         <div className="mb-6">
@@ -248,7 +310,6 @@ const CustomerPage = () => {
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Address</th>
                     <th className="py-3 px-4">City</th>
-                   
                     <th className="py-3 px-4">Actions</th>
                   </tr>
                 </thead>
@@ -262,7 +323,6 @@ const CustomerPage = () => {
                       <td className="py-3 px-4 text-white">{customer.email || '-'}</td>
                       <td className="py-3 px-4 text-white">{customer.address || '-'}</td>
                       <td className="py-3 px-4 text-white">{customer.city || '-'}</td>
-                     
                       <td className="py-3 px-4">
                         <button
                           onClick={() => handleEdit(customer)}
@@ -287,14 +347,12 @@ const CustomerPage = () => {
               </table>
             </div>
 
-            {/* Pagination Controls */}
             {filteredCustomers.length > 0 && (
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-gray-400">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredCustomers.length)} of {filteredCustomers.length} entries
                 </div>
                 <div className="flex gap-2">
-                  {/* First Button */}
                   <button
                     onClick={() => paginate(1)}
                     disabled={currentPage === 1}
@@ -302,8 +360,6 @@ const CustomerPage = () => {
                   >
                     First
                   </button>
-
-                  {/* Previous Button */}
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
@@ -311,8 +367,6 @@ const CustomerPage = () => {
                   >
                     Previous
                   </button>
-
-                  {/* Page Numbers with Ellipsis */}
                   {getPaginationButtons().map((page, index) => (
                     <button
                       key={index}
@@ -329,8 +383,6 @@ const CustomerPage = () => {
                       {page}
                     </button>
                   ))}
-
-                  {/* Next Button */}
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
@@ -338,8 +390,6 @@ const CustomerPage = () => {
                   >
                     Next
                   </button>
-
-                  {/* Last Button */}
                   <button
                     onClick={() => paginate(totalPages)}
                     disabled={currentPage === totalPages}
@@ -353,92 +403,131 @@ const CustomerPage = () => {
           </>
         )}
 
-        {/* Modal (unchanged) */}
+        {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
             <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h2 className="text-xl font-bold mb-4">
-                {selectedCustomer ? 'Edit Customer' : 'Add Customer'}
-              </h2>
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Phone</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Address</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">City</label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Brand</label>
-                  <input
-                    type="text"
-                    name="brand"
-                    value={formData.brand}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
-                  >
-                    {loading ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </form>
+              {modalType === 'customer' ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4">
+                    {selectedCustomer ? 'Edit Customer' : 'Add Customer'}
+                  </h2>
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">Phone</label>
+                      <input
+                        type="text"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">Address</label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">City</label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1 text-gray-300">Brand</label>
+                      <input
+                        type="text"
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={resetForm}
+                        className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
+                      >
+                        {loading ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : modalType === 'whatsapp' ? (
+                <>
+                  <h2 className="text-xl font-bold mb-4">Kirim WhatsApp ke Semua Pelanggan</h2>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1 text-gray-300">Pesan WhatsApp</label>
+                    <textarea
+                      value={whatsappMessage}
+                      onChange={(e) => setWhatsappMessage(e.target.value)}
+                      placeholder="Masukkan pesan WhatsApp..."
+                      className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={5}
+                      required
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWhatsappMessage('');
+                        setShowModal(false);
+                        setModalType(null);
+                      }}
+                      className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={sendWhatsAppToAll}
+                      disabled={sendingWhatsApp || !whatsappMessage.trim()}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-400"
+                    >
+                      {sendingWhatsApp ? 'Mengirim...' : 'Kirim ke Semua'}
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         )}
