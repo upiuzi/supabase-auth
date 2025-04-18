@@ -4,7 +4,7 @@ import { Customer, Batch } from '../../type/order';
 import { Order, Company, BankAccount, PaymentLog } from '../../type/schema';
 import { useState, useEffect } from 'react';
 import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
-import  supabase  from '../../supabase';
+import  supabase  from '../../supabase'; // Asumsi supabase client sudah dikonfigurasi
 
 interface OrderDetailModalProps {
   show: boolean;
@@ -27,7 +27,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   loading,
   onClose,
 }) => {
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -253,7 +253,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
       await fetchPaymentLogs();
 
-      setShowPaymentModal(false);
+      setShowPaymentForm(false);
       setPaymentAmount('');
       setPaymentDate('');
       setPaymentMethod(order.bank_account_id);
@@ -305,8 +305,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   if (!show || !order) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white relative">
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white">
         <h2 className="text-xl font-bold mb-4">Order Details</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -403,6 +403,86 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             <p className="text-gray-400">No payment history available.</p>
           )}
         </div>
+        {showPaymentForm && (
+          <div className="mt-6">
+            <h3 className="font-bold text-lg mb-2">Add Payment</h3>
+            <form onSubmit={handlePaymentSubmit}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="paymentAmount" className="block text-sm font-medium text-gray-200">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    id="paymentAmount"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-200">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    id="paymentDate"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-200">
+                    Method
+                  </label>
+                  <select
+                    id="paymentMethod"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
+                  >
+                    {bankAccounts.map((ba) => (
+                      <option key={ba.id} value={ba.id}>
+                        {ba.account_name} ({ba.bank_name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-200">
+                    Notes
+                  </label>
+                  <textarea
+                    id="paymentNotes"
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
+                  />
+                </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  disabled={loading || paymentLoading}
+                >
+                  Add Payment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentForm(false)}
+                  className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+                  disabled={loading || paymentLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
         <div className="mt-6 flex justify-between">
           <div>
             <button
@@ -414,7 +494,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               Download Invoice
             </button>
             <button
-              onClick={() => setShowPaymentModal(true)}
+              onClick={() => setShowPaymentForm(true)}
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
               disabled={loading || paymentLoading}
               aria-label="Add payment"
@@ -431,90 +511,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
             Close
           </button>
         </div>
-
-        {/* Payment Modal */}
-        {showPaymentModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-60">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h3 className="text-xl font-bold mb-4">Add Payment</h3>
-              <form onSubmit={handlePaymentSubmit}>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label htmlFor="paymentAmount" className="block text-sm font-medium text-gray-200">
-                      Amount
-                    </label>
-                    <input
-                      type="number"
-                      id="paymentAmount"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-200">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      id="paymentDate"
-                      value={paymentDate}
-                      onChange={(e) => setPaymentDate(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-200">
-                      Method
-                    </label>
-                    <select
-                      id="paymentMethod"
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
-                    >
-                      {bankAccounts.map((ba) => (
-                        <option key={ba.id} value={ba.id}>
-                          {ba.account_name} ({ba.bank_name})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="paymentNotes" className="block text-sm font-medium text-gray-200">
-                      Notes
-                    </label>
-                    <textarea
-                      id="paymentNotes"
-                      value={paymentNotes}
-                      onChange={(e) => setPaymentNotes(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-700 text-white"
-                    />
-                  </div>
-                </div>
-                <div className="mt-6 flex justify-end">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 mr-2"
-                    disabled={loading || paymentLoading}
-                  >
-                    Add Payment
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPaymentModal(false)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
-                    disabled={loading || paymentLoading}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
