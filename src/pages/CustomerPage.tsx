@@ -1,3 +1,4 @@
+
 // src/pages/CustomerPage.tsx
 import { useState, useEffect } from 'react';
 import { 
@@ -14,7 +15,7 @@ const CustomerPage = () => {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'customer' | 'whatsapp' | null>(null); // State untuk jenis modal
+  const [modalType, setModalType] = useState<'customer' | 'whatsapp' | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -27,6 +28,8 @@ const CustomerPage = () => {
   });
   const [whatsappMessage, setWhatsappMessage] = useState('');
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]); // State untuk pelanggan terpilih
+  const [sendToAll, setSendToAll] = useState(true); // State untuk opsi pengiriman
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,14 +52,21 @@ const CustomerPage = () => {
     }
   };
 
-  const sendWhatsAppToAll = async () => {
+  // Fungsi untuk mengirim WhatsApp
+  const sendWhatsApp = async (recipients: Customer[]) => {
     if (!whatsappMessage.trim()) {
       alert('Masukkan pesan WhatsApp terlebih dahulu!');
       return;
     }
 
     setSendingWhatsApp(true);
-    const customersWithPhone = filteredCustomers.filter(customer => customer.phone);
+    const customersWithPhone = recipients.filter(customer => customer.phone);
+
+    if (customersWithPhone.length === 0) {
+      alert('Tidak ada pelanggan dengan nomor telepon yang valid!');
+      setSendingWhatsApp(false);
+      return;
+    }
 
     for (let i = 0; i < customersWithPhone.length; i++) {
       const customer = customersWithPhone[i];
@@ -80,7 +90,7 @@ const CustomerPage = () => {
         }
 
         if (i < customersWithPhone.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 30000));
+          await new Promise(resolve => setTimeout(resolve, 30000)); // Interval 30 detik
         }
       } catch (error) {
         console.error(`Error mengirim WhatsApp ke ${customer.name}:`, error);
@@ -89,9 +99,46 @@ const CustomerPage = () => {
 
     setSendingWhatsApp(false);
     setWhatsappMessage('');
-    setShowModal(false); // Tutup modal setelah selesai
+    setShowModal(false);
     setModalType(null);
+    setSelectedCustomerIds([]); // Reset pilihan setelah pengiriman
     alert('Pengiriman WhatsApp selesai!');
+  };
+
+  // Fungsi untuk mengirim ke semua pelanggan
+  const sendWhatsAppToAll = () => {
+    sendWhatsApp(filteredCustomers);
+  };
+
+  // Fungsi untuk mengirim ke pelanggan terpilih
+  const sendWhatsAppToSelected = () => {
+    const selectedCustomers = filteredCustomers.filter(customer => 
+      selectedCustomerIds.includes(customer.id)
+    );
+    if (selectedCustomers.length === 0) {
+      alert('Pilih setidaknya satu pelanggan!');
+      return;
+    }
+    sendWhatsApp(selectedCustomers);
+  };
+
+  // Fungsi untuk menangani pemilihan checkbox
+  const handleSelectCustomer = (customerId: string) => {
+    setSelectedCustomerIds(prev => 
+      prev.includes(customerId) 
+        ? prev.filter(id => id !== customerId) 
+        : [...prev, customerId]
+    );
+  };
+
+  // Fungsi untuk memilih semua pelanggan di halaman saat ini
+  const handleSelectAll = () => {
+    const currentPageIds = currentItems.map(customer => customer.id);
+    if (selectedCustomerIds.length === currentItems.length) {
+      setSelectedCustomerIds([]);
+    } else {
+      setSelectedCustomerIds(currentPageIds);
+    }
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,6 +153,7 @@ const CustomerPage = () => {
       customer.email?.toLowerCase().includes(query)
     );
     setFilteredCustomers(filtered);
+    setSelectedCustomerIds([]); // Reset pilihan saat pencarian
     setCurrentPage(1);
   };
 
@@ -155,6 +203,7 @@ const CustomerPage = () => {
       try {
         await deleteCustomer(id);
         await fetchCustomers();
+        setSelectedCustomerIds(prev => prev.filter(customerId => customerId !== id));
         if (filteredCustomers.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
         }
@@ -260,7 +309,7 @@ const CustomerPage = () => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
-              Kirim WhatsApp ke Semua
+              Kirim WhatsApp
             </button>
           </div>
         </div>
@@ -303,6 +352,14 @@ const CustomerPage = () => {
               <table className="min-w-full bg-gray-800 rounded-lg">
                 <thead>
                   <tr className="text-gray-400 text-left">
+                    <th className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={currentItems.length > 0 && selectedCustomerIds.length === currentItems.length}
+                        onChange={handleSelectAll}
+                        className="form-checkbox h-5 w-5 text-blue-500"
+                      />
+                    </th>
                     <th className="py-3 px-4">ID</th>
                     <th className="py-3 px-4">Name</th>
                     <th className="py-3 px-4">Brand</th>
@@ -316,6 +373,14 @@ const CustomerPage = () => {
                 <tbody>
                   {currentItems.map((customer, index) => (
                     <tr key={customer.id} className="border-t border-gray-700 hover:bg-gray-700">
+                      <td className="py-3 px-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedCustomerIds.includes(customer.id)}
+                          onChange={() => handleSelectCustomer(customer.id)}
+                          className="form-checkbox h-5 w-5 text-blue-500"
+                        />
+                      </td>
                       <td className="py-3 px-4 text-gray-300">{"csr0" + (indexOfFirstItem + index + 1)}</td>
                       <td className="py-3 px-4 text-white">{customer.name}</td>
                       <td className="py-3 px-4 text-white">{customer.brand || '-'}</td>
@@ -494,7 +559,32 @@ const CustomerPage = () => {
                 </>
               ) : modalType === 'whatsapp' ? (
                 <>
-                  <h2 className="text-xl font-bold mb-4">Kirim WhatsApp ke Semua Pelanggan</h2>
+                  <h2 className="text-xl font-bold mb-4">Kirim WhatsApp</h2>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1 text-gray-300">Kirim Ke</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="sendOption"
+                          checked={sendToAll}
+                          onChange={() => setSendToAll(true)}
+                          className="form-radio h-5 w-5 text-blue-500"
+                        />
+                        <span className="ml-2 text-gray-300">Semua Pelanggan</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="sendOption"
+                          checked={!sendToAll}
+                          onChange={() => setSendToAll(false)}
+                          className="form-radio h-5 w-5 text-blue-500"
+                        />
+                        <span className="ml-2 text-gray-300">Pelanggan Terpilih</span>
+                      </label>
+                    </div>
+                  </div>
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-1 text-gray-300">Pesan WhatsApp</label>
                     <textarea
@@ -513,17 +603,18 @@ const CustomerPage = () => {
                         setWhatsappMessage('');
                         setShowModal(false);
                         setModalType(null);
+                        setSendToAll(true);
                       }}
                       className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={sendWhatsAppToAll}
+                      onClick={sendToAll ? sendWhatsAppToAll : sendWhatsAppToSelected}
                       disabled={sendingWhatsApp || !whatsappMessage.trim()}
                       className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-400"
                     >
-                      {sendingWhatsApp ? 'Mengirim...' : 'Kirim ke Semua'}
+                      {sendingWhatsApp ? 'Mengirim...' : 'Kirim'}
                     </button>
                   </div>
                 </>
