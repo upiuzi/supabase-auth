@@ -65,7 +65,7 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
   const totalQtyByProduct = getTotalQtyPerProduct();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       <div className="bg-gray-800 p-4 rounded-lg">
         <h2 className="text-lg font-bold text-white mb-2">Total Produksi</h2>
         {Object.keys(totalQtyByProduct).length === 0 ? (
@@ -92,6 +92,22 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
               <li key={productName} className="text-gray-200">
                 <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
                 {data.orderedQty} kg
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="bg-gray-800 p-4 rounded-lg">
+        <h2 className="text-lg font-bold text-white mb-2">Sisa Produksi</h2>
+        {Object.keys(totalQtyByProduct).length === 0 ? (
+          <p className="text-gray-400">No products ordered yet.</p>
+        ) : (
+          <ul className="space-y-2" role="list" aria-label="Remaining production quantities">
+            {Object.entries(totalQtyByProduct).map(([productName, data]) => (
+              <li key={productName} className="text-gray-200">
+                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
+                {data.initialQty - data.orderedQty} kg
               </li>
             ))}
           </ul>

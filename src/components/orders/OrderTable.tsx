@@ -456,13 +456,13 @@ const OrderTable: React.FC<OrderTableProps> = ({
               <th className="py-3 px-4">Bank Account</th> */}
               {tableType === 'orders' ? (
                 <>
-                <th className="py-3 px-4">Order ID</th>
+                {/* <th className="py-3 px-4">Order ID</th> */}
                 <th className="py-3 px-4">Invoice No</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Batch</th>
                   <th className="py-3 px-4">Product</th>
-                  <th className="py-3 px-4">Qty</th>
-                  <th className="py-3 px-4">Price</th>
+                  <th className="py-3 px-6">Qty</th>
+                  <th className="py-3 px-6">Price</th>
                   <th className="py-3 px-4">Amount</th>
                 </>
               ) : (
@@ -497,7 +497,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td className="py-4 px-4 text-white">{getBankAccountName(order.bank_account_id)}</td> */}
                 {tableType === 'orders' ? (
                   <>
-                   <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td>
+                   {/* <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td> */}
                    <td className="py-4 px-4 text-white">{getInvoiceNo(order)}</td>
                    <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
                   <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
@@ -505,14 +505,18 @@ const OrderTable: React.FC<OrderTableProps> = ({
                       {order.order_items && order.order_items.length > 0 ? (
                         <div className="space-y-1">
                           {order.order_items.map((item, idx) => (
-                            <div key={idx}>{getProductName(item.product_id, order.batch_id)}</div>
+                            <div key={idx}>
+                              {getProductName(item.product_id, order.batch_id)}
+                              {item.qty ? ` (${item.qty} jerigen)` : ''}
+                              {item.price ? ` @ Rp${item.price.toLocaleString('id-ID')}` : ''}
+                            </div>
                           ))}
                         </div>
                       ) : (
                         <span>-</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-white">
+                    <td className="py-4 px-6 text-white">
                       {order.order_items && order.order_items.length > 0 ? (
                         <div className="space-y-1">
                           {order.order_items.map((item, idx) => (
@@ -539,7 +543,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                         <span>-</span>
                       )}
                     </td>
-                    <td className="py-4 px-4 text-white">
+                    <td className="py-4 px-6 text-white">
                       {order.order_items && order.order_items.length > 0 ? (
                         <div className="space-y-1">
                           {order.order_items.map((item, idx) => (
@@ -578,65 +582,32 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </td>
-                <td className="py-4 px-4 flex gap-2">
-                  <button
-                    onClick={() => onViewDetails(order)}
-                    className="text-gray-400 hover:text-green-400"
-                    disabled={loading}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm-3 8a8 8 0 100-16 8 8 0 000 16z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => onEditOrder(order)}
-                    className="text-gray-400 hover:text-blue-400"
-                    disabled={loading}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                  {tableType === 'shipment' && (
-                    <button
-                      onClick={() => onEditShipment(order)}
-                      className="text-gray-400 hover:text-yellow-400"
-                      disabled={loading}
-                    >
+                <td className="py-4 px-2 relative">
+                  <div className="group inline-block">
+                    <button className="text-gray-400 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                        />
+                        <circle cx="12" cy="12" r="1.5"/>
+                        <circle cx="19" cy="12" r="1.5"/>
+                        <circle cx="5" cy="12" r="1.5"/>
                       </svg>
                     </button>
-                  )}
-                  <button
-                    onClick={() => onDeleteOrder(order.id)}
-                    className="text-gray-400 hover:text-red-400"
-                    disabled={loading}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18"
-                      />
-                    </svg>
-                  </button>
+                    <ul className="absolute right-0 z-10 hidden group-hover:block bg-gray-700 text-white rounded shadow-lg min-w-[120px] py-1">
+                      <li>
+                        <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Lihat Detail</button>
+                      </li>
+                      <li>
+                        <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Edit Order</button>
+                      </li>
+                      <li>
+                        <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Hapus Order</button>
+                      </li>
+                      {tableType === 'shipment' && (
+                        <li>
+                          <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Edit Pengiriman</button>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
                 </td>
               </tr>
             ))}

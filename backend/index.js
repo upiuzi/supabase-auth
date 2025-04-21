@@ -12,11 +12,6 @@ import QRCode from 'qrcode';
 // Langsung masukkan nilai Supabase URL & Key
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-
-const upload = multer({ storage: multer.memoryStorage() });
-
-// const SESSION_ID = "6281122244446";
-
 // Inisialisasi aplikasi Express
 const app = express();
 app.use(cors()); // Aktifkan CORS untuk semua origin
@@ -30,12 +25,11 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
- // Route untuk status
+// Route untuk status
 app.get('/status', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Route untuk kirim pesan teks WhatsApp
 // Route untuk kirim pesan teks WhatsApp
 app.post('/message/send-text', async (req, res) => {
   const session = req.body.session || req.body.sessionId;
@@ -91,7 +85,7 @@ app.post('/message/send-text', async (req, res) => {
 });
 
 // Send Image
-app.post('/message/send-image', upload.single('media'), async (req, res) => {
+app.post('/message/send-image', multer({ storage: multer.memoryStorage() }).single('media'), async (req, res) => {
   const session = req.body.session || req.body.sessionId;
   const { to, text } = req.body;
   const media = req.file?.buffer;
@@ -113,7 +107,7 @@ app.post('/message/send-image', upload.single('media'), async (req, res) => {
 });
 
 // Send Video
-app.post('/message/send-video', upload.single('media'), async (req, res) => {
+app.post('/message/send-video', multer({ storage: multer.memoryStorage() }).single('media'), async (req, res) => {
   const session = req.body.session || req.body.sessionId;
   const { to, text } = req.body;
   const media = req.file?.buffer;
@@ -135,7 +129,7 @@ app.post('/message/send-video', upload.single('media'), async (req, res) => {
 });
 
 // Send Document
-app.post('/message/send-document', upload.single('media'), async (req, res) => {
+app.post('/message/send-document', multer({ storage: multer.memoryStorage() }).single('media'), async (req, res) => {
   const session = req.body.session || req.body.sessionId;
   const { to, text } = req.body;
   const filename = req.file?.originalname;
@@ -159,7 +153,7 @@ app.post('/message/send-document', upload.single('media'), async (req, res) => {
 });
 
 // Send Voice Note
-app.post('/message/send-voice', upload.single('media'), async (req, res) => {
+app.post('/message/send-voice', multer({ storage: multer.memoryStorage() }).single('media'), async (req, res) => {
   const session = req.body.session || req.body.sessionId;
   const { to } = req.body;
   const media = req.file?.buffer;
@@ -179,7 +173,6 @@ app.post('/message/send-voice', upload.single('media'), async (req, res) => {
   }
 });
 
-// Alias endpoint: /send (untuk kompatibilitas frontend)
 // Alias endpoint: /send (untuk kompatibilitas frontend)
 app.post('/send', async (req, res) => {
   console.log('POST /send body:', req.body);
@@ -220,7 +213,6 @@ const respond_to_message = async (msg) => {
     console.log("Data to n8n", data);
 
     try {
-      // Tambahkan efek typing sebelum mengirim pesan
       await whatsapp.sendTyping({
         sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
         to: msg.key.remoteJid,
@@ -234,23 +226,23 @@ const respond_to_message = async (msg) => {
       } catch (n8nError) {
         console.error("Error calling n8n webhook:", n8nError?.response?.data || n8nError.message);
         await whatsapp.sendTextMessage({
-          sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
+          sessionId: msg.sessionId,
           to: msg.key.remoteJid,
-          text: "Maaf, AI sedang tidak tersedia. Silakan coba lagi nanti.",
+          text: "Maaf, terjadi kesalahan pada server AI.",
         });
         return;
       }
 
-      if (response.data && response.data.output) {
+      if (response && response.data && response.data.output) {
         await whatsapp.sendTextMessage({
-          sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
+          sessionId: msg.sessionId,
           to: msg.key.remoteJid,
           text: response.data.output,
         });
       } else {
         console.log("No response from n8n or output missing");
         await whatsapp.sendTextMessage({
-          sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
+          sessionId: msg.sessionId,
           to: msg.key.remoteJid,
           text: "Maaf, tidak ada balasan dari AI.",
         });
@@ -474,7 +466,7 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
         id,
         customer:customer_id (name, phone),
         order_items:order_items (
-          qty,
+          qty, price,
           product:product_id (name)
         )
       `)
@@ -489,7 +481,9 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
           name: order.customer?.name || '',
           phone: order.customer?.phone || '',
           product: item.product?.name || '',
-          qty: item.qty
+          qty: item.qty,
+          price: item.price
+         
         });
       });
     });

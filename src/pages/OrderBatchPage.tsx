@@ -79,7 +79,14 @@ const OrderPage: React.FC = () => {
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [broadcastStatusList, setBroadcastStatusList] = useState<{ phone: string; status: 'pending' | 'sending' | 'sent' | 'failed'; message: string }[]>([]);
-  const [broadcastBatchData, setBroadcastBatchData] = useState<{ name: string; phone: string; product: string; qty: number; customer_id: string }[]>([]);
+  const [broadcastBatchData, setBroadcastBatchData] = useState<{
+    name: string;
+    phone: string;
+    product: string;
+    qty: number;
+    customer_id: string;
+    price?: number; // price opsional
+  }[]>([]);
   const [batchIdFilter, setBatchIdFilter] = useState<string | null>(null);
   const [showBroadcastReview, setShowBroadcastReview] = useState(false);
   const [broadcastReviewLoading, setBroadcastReviewLoading] = useState(false);
@@ -613,12 +620,12 @@ const OrderPage: React.FC = () => {
     setBroadcastLoading(true);
 
     // 1. Group by phone
-    const grouped: Record<string, { name: string; phone: string; products: { product: string; qty: number }[] }> = {};
+    const grouped: Record<string, { name: string; phone: string; products: { product: string; qty: number; price: number }[] }> = {};
     for (const d of broadcastBatchData) {
       if (!grouped[d.phone]) {
         grouped[d.phone] = { name: d.name, phone: d.phone, products: [] };
       }
-      grouped[d.phone].products.push({ product: d.product, qty: d.qty });
+      grouped[d.phone].products.push({ product: d.product, qty: d.qty, price: d.price ?? 0 });
     }
     const groupedList = Object.values(grouped);
 
@@ -627,11 +634,14 @@ const OrderPage: React.FC = () => {
     );
     for (const d of groupedList) {
       setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sending', message: '' } : s));
-      // Build message listing all products
-      const productLines = d.products.map(
-        p => `- ${p.product}: ${p.qty}kg atau ${(p.qty * 1.1).toFixed(1)} liter`
-      ).join('\n');
-      const message = `Hello ${d.name}, mau konfirmasi pesanan order:\n${productLines}\nAkan tiba pada tanggal ${arrivalDate}. Terima kasih.`;
+      // Build message listing all products in jerigen (1 jerigen = 19kg)
+      const productLines = d.products.map(p => {
+        const jerigen = Math.round(p.qty / 19);
+        return `- ${p.product}:  ${jerigen} jerigen dengan harga ${p.price * 19} per jerigen nya`;
+      }).join('\n');
+      // Add price info: price x 9 = harga 1 jerigen (if price available)
+      // If you want to show price per jerigen, you must include price in broadcastBatchData
+      const message = `Hello ${d.name}, mau konfirmasi pesanan order:\n${productLines}\nKeterangan:\n1 jerigen = 20,9 liter/19kg\nAkan tiba pada tanggal ${arrivalDate}. Terima kasih.`;
       try {
         await sendOrderConfirmBroadcast({
           to: d.phone,

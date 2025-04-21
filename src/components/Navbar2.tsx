@@ -12,16 +12,22 @@ const navigation = [
       { name: 'Customer', link: '/customer' },
       { name: 'Product', link: '/Product' },
       { name: 'Sample', link: '/Sample' },
-      
-      { name: 'Exhibition', link: '/Exhibition' },
       { name: 'Bank Account', link: '/bank' },
       { name: 'Company', link: '/company' },
+    ],
+  },
+  {
+    name: 'Work',
+    current: false,
+    submenu: [
+      { name: 'Order', link: '/order', current: false },
+      { name: 'Prospect', link: '/Prospect',current: false },
+      { name: 'Exhibition', link: '/Exhibition' },
       { name: 'Payments', link: '/payments' },
     ],
   },
   { name: 'Batch', link: '/batches', current: false },
-  { name: 'Order', link: '/order', current: false },
-  { name: 'Prospect', link: '/Prospect',current: false },
+  
   // { name: 'Shipment', link: '/shipment', current: false },
   {
     name: 'Report',
@@ -38,6 +44,7 @@ const navigation = [
     submenu: [
       { name: 'AI Assistant', link: '/ai-assistant' },
       { name: 'Setting WhatsApp', link: '/whatsapp-setting' },
+      { name: 'Broadcast', link: '/broadcast' },
       { name: 'History Customer', link: '/history-customer' },
     ],
   },
@@ -134,7 +141,7 @@ export default function Navbar2() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a8 8 0 01-8 8m8-8a8 8 0 00-8-8m0 16a8 8 0 008-8m-8 0h.01"></path>
                           </svg>
                         )}
-                        {item.name === 'Order' && (
+                        {item.name === 'Work' && (
                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h18v18H3zM9 3v18m6-18v18"></path>
                           </svg>
