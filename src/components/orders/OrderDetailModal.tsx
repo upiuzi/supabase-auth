@@ -5,6 +5,7 @@ import { Order, Company, BankAccount, PaymentLog } from '../../type/schema';
 import { useState, useEffect } from 'react';
 import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
 import  supabase  from '../../supabase'; // Asumsi supabase client sudah dikonfigurasi
+import { sendBroadcast } from '../../services/broadcastService';
 
 interface OrderDetailModalProps {
   show: boolean;
@@ -35,12 +36,30 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
+  const [showSendPdfModal, setShowSendPdfModal] = useState(false);
+  const [sessions, setSessions] = useState<{ session_id: string; status: string }[]>([]);
+  const [selectedSession, setSelectedSession] = useState('');
+  const [sendingPdf, setSendingPdf] = useState(false);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+
   useEffect(() => {
     if (order) {
       setPaymentMethod(order.bank_account_id);
       fetchPaymentLogs();
     }
   }, [order]);
+
+  useEffect(() => {
+    if (showSendPdfModal) {
+      fetch('http://localhost:3331/whatsapp/sessions')
+        .then(async (res) => {
+          if (!res.ok) return;
+          const data = await res.json();
+          setSessions(data);
+          if (data.length > 0) setSelectedSession(data[0].session_id);
+        });
+    }
+  }, [showSendPdfModal]);
 
   const fetchPaymentLogs = async () => {
     if (order?.id) {
@@ -232,6 +251,126 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     doc.save(`Invoice_${order.id}_Standard.pdf`);
   };
 
+  const generatePDFBlob = (order: Order): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const leftColumnX = 10;
+      const rightColumnX = 100;
+      let yPos = 10;
+
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INVOICE', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 8;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Invoice #: ${order.id}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 6;
+      const currentDate = new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      doc.text(`Date: ${currentDate}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+
+      const selectedCompany = companies.find((c) => c.id === order.company_id);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(selectedCompany?.company_name || 'Unknown Company', leftColumnX, yPos);
+      yPos += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Phone: ${selectedCompany?.phone || '-'}`, leftColumnX, yPos);
+      yPos += 6;
+      doc.text(`Email: ${selectedCompany?.email || '-'}`, leftColumnX, yPos);
+      yPos += 6;
+      const companyAddress = selectedCompany?.address || '-';
+      const maxWidth = 90;
+      const addressLines = doc.splitTextToSize(`Address: ${companyAddress}`, maxWidth);
+      doc.text(addressLines, leftColumnX, yPos);
+      yPos += 6 * addressLines.length;
+
+      let customerYPos = 34;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Customer Details', rightColumnX, customerYPos);
+      customerYPos += 6;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Name: ${getCustomerName(order.customer_id)}`, rightColumnX, customerYPos);
+      customerYPos += 6;
+      doc.text(`Phone Number: ${getCustomerPhone(order.customer_id)}`, rightColumnX, customerYPos);
+      customerYPos += 6;
+      const customerAddress = getCustomerAddress(order.customer_id);
+      const addressLinesCustomer = doc.splitTextToSize(`Address: ${customerAddress}`, maxWidth);
+      doc.text(addressLinesCustomer, rightColumnX, customerYPos);
+      customerYPos += 6 * addressLinesCustomer.length;
+      doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Products', leftColumnX, yPos);
+      yPos += 2;
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(150, 150, 150);
+      doc.line(leftColumnX, yPos, pageWidth - 10, yPos);
+      yPos += 6;
+
+      const headers = ['Product Name', 'Description', 'Qty', 'Price', 'Total'];
+      const data =
+        order.order_items?.map((item) => [
+          getProductName(item.product_id, order.batch_id),
+          getProductDescription(item.product_id, order.batch_id).substring(0, 20) + '...',
+          item.qty.toString(),
+          `Rp ${item.price.toLocaleString('id-ID')}`,
+          `Rp ${(item.price * item.qty).toLocaleString('id-ID')}`,
+        ]) || [];
+
+      doc.autoTable({
+        startY: yPos,
+        head: [headers],
+        body: [
+          ...data,
+          ['', '', '', 'Grand Total', `Rp ${getTotalAmount(order).toLocaleString('id-ID')}`],
+          ['', '', `${getTotalQtyAllProducts(order)}`, 'Total Qty', ''],
+        ],
+        styles: { fontSize: 10, font: 'helvetica' },
+        headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold' },
+        bodyStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
+        alternateRowStyles: { fillColor: [255, 255, 255] },
+        margin: { left: leftColumnX, right: 10 },
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 10;
+
+      const selectedBankAccount = bankAccounts.find((ba) => ba.id === order.bank_account_id);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Payment Methods', leftColumnX, yPos);
+      yPos += 6;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Bank: ${selectedBankAccount?.bank_name || '-'}`, leftColumnX, yPos);
+      yPos += 6;
+      doc.text(
+        `${selectedBankAccount?.account_number || '-'} : ${selectedBankAccount?.account_name || '-'}`,
+        leftColumnX,
+        yPos
+      );
+
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('Thank you for your business!', pageWidth / 2, pageHeight - 10, {
+        align: 'center',
+      });
+
+      const pdfBlob = doc.output('blob');
+      resolve(pdfBlob);
+    });
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
@@ -302,11 +441,39 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     }
   };
 
+  const handleSendPdfToWa = async () => {
+    if (!order || !selectedSession) return;
+    setSendingPdf(true);
+    try {
+      // Generate PDF blob
+      const blob = await generatePDFBlob(order);
+      setPdfBlob(blob);
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append('sessionId', selectedSession);
+      formData.append('to', getCustomerPhone(order.customer_id));
+      formData.append('text', 'Invoice Order');
+      formData.append('media', new File([blob], 'invoice.pdf', { type: 'application/pdf' }));
+      // Send to backend
+      const res = await fetch('http://localhost:3331/message/send-document', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Failed to send PDF');
+      alert('PDF sent to WhatsApp!');
+      setShowSendPdfModal(false);
+    } catch (err: any) {
+      alert('Failed to send PDF: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSendingPdf(false);
+    }
+  };
+
   if (!show || !order) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white">
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white shadow-lg mx-2 sm:mx-auto sm:w-full sm:max-w-2xl overflow-y-auto max-h-[90vh]">
         <h2 className="text-xl font-bold mb-4">Order Details</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -494,6 +661,14 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               Download Invoice
             </button>
             <button
+              onClick={() => setShowSendPdfModal(true)}
+              className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 mr-2"
+              disabled={loading || paymentLoading}
+              aria-label="Send PDF to WhatsApp"
+            >
+              Kirim PDF ke WA
+            </button>
+            <button
               onClick={() => setShowPaymentForm(true)}
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
               disabled={loading || paymentLoading}
@@ -512,6 +687,43 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </button>
         </div>
       </div>
+      {showSendPdfModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md mx-2 sm:mx-auto text-white shadow-lg">
+            <h3 className="text-lg font-bold mb-4">Kirim PDF ke WhatsApp</h3>
+            <div className="mb-4">
+              <label className="block mb-1">Pilih Session WhatsApp</label>
+              <select
+                className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200"
+                value={selectedSession}
+                onChange={(e) => setSelectedSession(e.target.value)}
+              >
+                {sessions.map((s) => (
+                  <option key={s.session_id} value={s.session_id}>
+                    {s.session_id} ({s.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowSendPdfModal(false)}
+                className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                disabled={sendingPdf}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSendPdfToWa}
+                className="px-4 py-2 bg-indigo-500 rounded hover:bg-indigo-600"
+                disabled={sendingPdf || !selectedSession}
+              >
+                {sendingPdf ? 'Mengirim...' : 'Kirim'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

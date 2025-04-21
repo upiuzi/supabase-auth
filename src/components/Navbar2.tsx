@@ -32,6 +32,14 @@ const navigation = [
       { name: 'Top Customer', link: '/report-top-customer' },
     ],
   },
+  {
+    name: 'Tools',
+    current: false,
+    submenu: [
+      { name: 'AI Assistant', link: '/ai-assistant' },
+      { name: 'Setting WhatsApp', link: '/whatsapp-setting' },
+    ],
+  },
 ];
 
 function classNames(...classes: string[]) {
@@ -137,6 +145,20 @@ export default function Navbar2() {
                             <circle cx="18" cy="19" r="2" />
                           </svg>
                         )}
+                        {item.name === 'Broadcast' && (
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15h8v-4h4v-2h4v6h2M11 15v4h2M17 15v4h2" />
+                            <circle cx="12" cy="19" r="2" />
+                            <circle cx="18" cy="19" r="2" />
+                          </svg>
+                        )}
+                        {item.name === 'Setting WhatsApp' && (
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15h8v-4h4v-2h4v6h2M11 15v4h2M17 15v4h2" />
+                            <circle cx="12" cy="19" r="2" />
+                            <circle cx="18" cy="19" r="2" />
+                          </svg>
+                        )}
                         {item.name}
                       </Link>
                     )}
@@ -158,6 +180,27 @@ export default function Navbar2() {
               </svg>
               Logout
             </button>
+            {/* Tools Dropdown/Menu */}
+            <div className="relative group">
+              <button className="px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded inline-flex items-center">
+                <span>Tools</span>
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              <div className="absolute hidden group-hover:block bg-gray-900 border border-gray-700 rounded shadow-lg mt-2 min-w-[180px] z-50">
+                <a
+                  href="/ai-assistant"
+                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
+                >
+                  AI Assistant
+                </a>
+                <a
+                  href="/whatsapp-setting"
+                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
+                >
+                  Setting WhatsApp
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,17 +1,18 @@
 const OPENROUTER_API_KEY = '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';
+const DEEPSEEK_API_KEY = 'sk-ab787366d3c647c4849bedacd0212d1b';
 
 export async function askAI(messages: { role: 'user' | 'assistant' | 'system'; content: string }[]): Promise<string> {
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://yourapp.example.com',
         'X-Title': 'Your App AI Assistant'
       },
       body: JSON.stringify({
-        model: 'openrouter/optimus-alpha',
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: `You are an AI assistant that helps generate email drafts and WhatsApp messages.
 When the user asks to send an email, always generate a full professional email draft with subject and body, in the requested language.
@@ -47,4 +48,9 @@ Do not add any other explanation or draft, just output exactly in that format.
     console.error('Error calling OpenRouter API:', error);
     throw error;
   }
+}
+
+export async function askAIString(input: string): Promise<string> {
+  // Fungsi pembungkus untuk halaman broadcast, agar bisa dipakai langsung string
+  return askAI([{ role: 'user', content: input }]);
 }

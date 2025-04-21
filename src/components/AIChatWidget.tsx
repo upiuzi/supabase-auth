@@ -131,7 +131,7 @@ const AIChatWidget = () => {
               <button
                 onClick={async () => {
                   try {
-                    await fetch('https://wagt.satcoconut.com/send', {
+                    await fetch('http://localhost:3331/send', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json'

@@ -23,6 +23,8 @@ import AIAssistantPage from "../pages/AIAssistantPage.tsx";
 import CompanyPage from "../pages/CompanyPage.tsx";
 import BankAccountPage from "../pages/BankAccountPage.tsx";
 import PaymentLogPage from "../pages/PaymentLogPage.tsx";
+import BroadcastPage from "../pages/BroadcastPage.tsx";
+import WhatsappSettingPage from "../pages/WhatsappSettingPage.tsx";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -51,6 +53,10 @@ const router = createBrowserRouter([
           {
             path: "/dashboard",
             element: <DashboardPage />,
+          },
+          {
+            path: "/broadcast",
+            element: <BroadcastPage />,
           },
           {
             path: "/payments",
@@ -119,6 +125,10 @@ const router = createBrowserRouter([
           {
             path: "/ai-assistant",
             element: <AIAssistantPage />,
+          },
+          {
+            path: "/whatsapp-setting",
+            element: <WhatsappSettingPage />,
           },
         ],
       },

@@ -118,6 +118,7 @@ export interface Order {
 }
 
 export interface PaymentLog {
+  bank_account: string;
   id: string;                     // UUID untuk identifikasi unik
   order_id: string;              // Referensi ke order
   amount: number;                // Jumlah pembayaran
