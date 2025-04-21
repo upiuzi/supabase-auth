@@ -14,7 +14,18 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 // Inisialisasi aplikasi Express
 const app = express();
-app.use(cors()); // Aktifkan CORS untuk semua origin
+
+// Aktifkan CORS untuk semua origin dan semua metode
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  credentials: true,
+}));
+
+// Untuk preflight (OPTIONS) di semua endpoint
+app.options('*', cors());
+
 app.use(express.json()); // Untuk parsing JSON body
 
 // Tentukan port
@@ -81,6 +92,60 @@ app.post('/message/send-text', async (req, res) => {
   } catch (error) {
     console.error('Error sending WhatsApp message:', error);
     res.status(500).json({ error: 'Failed to send message', details: error?.message });
+  }
+});
+
+// Route untuk kirim pesan teks WhatsApp (personalized, always use session 'personal')
+app.post('/message/personal/send-text', async (req, res) => {
+  // Always use session 'personal' for this endpoint
+  const session = 'personal';
+  const { to, text } = req.body;
+  if (!to || !text) {
+    return res.status(400).json({ error: 'to and text are required' });
+  }
+  try {
+    await whatsapp.sendTextMessage({
+      sessionId: session,
+      to,
+      text,
+    });
+
+    // --- LOG BROADCAST TO bclogs ---
+    let customer_id = null;
+    try {
+      const { data: customers, error: custError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', to)
+        .maybeSingle();
+      if (custError) {
+        console.error('[WA PERSONAL SEND-TEXT] Error finding customer:', custError);
+      } else if (customers && customers.id) {
+        customer_id = customers.id;
+      } else {
+        console.warn(`[WA PERSONAL SEND-TEXT] No customer found for phone: ${to}`);
+      }
+    } catch (lookupErr) {
+      console.error('[WA PERSONAL SEND-TEXT] Exception during customer lookup:', lookupErr);
+    }
+    // Only log if customer_id found
+    if (customer_id) {
+      const { error: logError } = await supabase
+        .from('bclogs')
+        .insert([{ customer_id, message: text, session }]);
+      if (logError) {
+        console.error('[WA PERSONAL SEND-TEXT] Failed to log broadcast:', logError);
+      } else {
+        console.log('[WA PERSONAL SEND-TEXT] Broadcast log saved');
+      }
+    } else {
+      console.warn(`[WA PERSONAL SEND-TEXT] Broadcast not logged: customer_id not found for phone ${to}`);
+    }
+
+    res.json({ success: true, message: 'Message sent (personal session)' });
+  } catch (error) {
+    console.error('[WA PERSONAL SEND-TEXT] Error sending message:', error);
+    res.status(500).json({ error: 'Failed to send WhatsApp message (personal session)', details: error?.message || error });
   }
 });
 

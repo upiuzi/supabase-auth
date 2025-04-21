@@ -18,7 +18,6 @@ import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
 import QtyEditModal from '../components/orders/QtyEditModal';
 import BulkEditModal from '../components/orders/BulkEditModal';
 import ShipmentEditModal from '../components/orders/ShipmentEditModal';
-import TotalQtySection from '../components/orders/TotalQtySection';
 import { Order, Customer, Batch, OrderItem, Company, BankAccount } from '../type/schema';
 
 // Extend jsPDF with autoTable plugin types
@@ -68,6 +67,8 @@ const OrderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState<'orders' | 'shipment'>('orders');
+  const [searchType, setSearchType] = useState<'invoice' | 'name' | 'batch'>('invoice');
+  const [sortByQty, setSortByQty] = useState<'desc' | 'asc'>('desc');
 
   const [formData, setFormData] = useState<FormData>({
     customer_id: '',
@@ -97,6 +98,17 @@ const OrderPage: React.FC = () => {
       applyFilters(orders);
     }
   }, [batchIdFilter, orders, searchQuery]);
+
+  useEffect(() => {
+    let sorted = [...filteredOrders];
+    sorted.sort((a, b) => {
+      const qtyA = (a.order_items || []).reduce((sum, item) => sum + item.qty, 0);
+      const qtyB = (b.order_items || []).reduce((sum, item) => sum + item.qty, 0);
+      return sortByQty === 'desc' ? qtyB - qtyA : qtyA - qtyB;
+    });
+    setFilteredOrders(sorted);
+    // eslint-disable-next-line
+  }, [sortByQty]);
 
   const fetchCompanies = async () => {
     try {
@@ -154,36 +166,19 @@ const OrderPage: React.FC = () => {
     }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (order) =>
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.name.toLowerCase()
-            .includes(query) ||
-          batches
-            .find((b) => b.id === order.batch_id)
-            ?.batch_id.toLowerCase()
-            .includes(query) ||
-          order.status.toLowerCase().includes(query) ||
-          order.expedition?.toLowerCase().includes(query) ||
-          order.description?.toLowerCase().includes(query) ||
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.phone?.toLowerCase()
-            .includes(query) ||
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.address?.toLowerCase()
-            .includes(query) ||
-          companies
-            .find((c) => c.id === order.company_id)
-            ?.company_name.toLowerCase()
-            .includes(query) ||
-          bankAccounts
-            .find((ba) => ba.id === order.bank_account_id)
-            ?.account_name.toLowerCase()
-            .includes(query)
-      );
+      if (searchType === 'invoice') {
+        filtered = filtered.filter((order) => order.invoice_no?.toLowerCase().includes(query));
+      } else if (searchType === 'name') {
+        filtered = filtered.filter(
+          (order) =>
+            customers.find((c) => c.id === order.customer_id)?.name.toLowerCase().includes(query)
+        );
+      } else if (searchType === 'batch') {
+        filtered = filtered.filter(
+          (order) =>
+            batches.find((b) => b.id === order.batch_id)?.batch_id.toLowerCase().includes(query)
+        );
+      }
     }
     setFilteredOrders(filtered);
     setCurrentPage(1);
@@ -562,32 +557,43 @@ const OrderPage: React.FC = () => {
           </div>
         </div>
 
-        <TotalQtySection filteredOrders={filteredOrders} batches={batches} companies={companies} />
-
-        <div className="mb-6">
-          <div className="relative">
+        <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
+          <div className="flex-1 flex items-center relative">
+            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
               type="text"
-              placeholder="Search orders..."
+              placeholder={
+                searchType === 'invoice' ? 'Cari Invoice...'
+                  : searchType === 'name' ? 'Cari Nama Customer...'
+                  : 'Cari Batch...'
+              }
+              className="border bg-gray-900 border-gray-700 text-white px-10 py-2 rounded w-full"
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
+              style={{ minWidth: 220 }}
             />
-            <svg
-              className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
           </div>
+          <select
+            className="border bg-gray-900 border-gray-700 text-white px-2 py-2 rounded"
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value as 'invoice' | 'name' | 'batch')}
+            style={{ minWidth: 140 }}
+          >
+            <option value="invoice">Search by Invoice</option>
+            <option value="name">Search by Name</option>
+            <option value="batch">Search by Batch</option>
+          </select>
+          <select
+            className="border bg-gray-900 border-gray-700 text-white px-2 py-2 rounded"
+            value={sortByQty}
+            onChange={(e) => setSortByQty(e.target.value as 'desc' | 'asc')}
+            style={{ minWidth: 140 }}
+          >
+            <option value="desc">Sort by Qty Terbanyak</option>
+            <option value="asc">Sort by Qty Terdikit</option>
+          </select>
         </div>
 
         <div className="mb-6">

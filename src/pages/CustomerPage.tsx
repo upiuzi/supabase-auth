@@ -9,6 +9,7 @@ import {
 } from '../services/supabaseService';
 import { getCustomers } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
+import { Link } from 'react-router-dom';
 
 const CustomerPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -382,7 +383,11 @@ const CustomerPage = () => {
                         />
                       </td>
                       <td className="py-3 px-4 text-gray-300">{"csr0" + (indexOfFirstItem + index + 1)}</td>
-                      <td className="py-3 px-4 text-white">{customer.name}</td>
+                      <td className="py-3 px-4 text-white">
+                        <Link to={`/customers/${customer.id}`} className="text-blue-400 hover:underline">
+                          {customer.name}
+                        </Link>
+                      </td>
                       <td className="py-3 px-4 text-white">{customer.brand || '-'}</td>
                       <td className="py-3 px-4 text-white">{customer.phone || '-'}</td>
                       <td className="py-3 px-4 text-white">{customer.email || '-'}</td>

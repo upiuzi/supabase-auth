@@ -112,7 +112,8 @@ const BroadcastPage: React.FC = () => {
   };
 
   const filteredCustomers = customers.filter((c) =>
-    (c.name?.toLowerCase?.() || '').includes(search.toLowerCase())
+    (c.name?.toLowerCase?.() || '').includes(search.toLowerCase()) ||
+    (c.phone?.toLowerCase?.() || '').includes(search.toLowerCase())
   );
 
   const allFilteredSelected = filteredCustomers.length > 0 && filteredCustomers.every(c => selectedPhones.includes(c.phone));

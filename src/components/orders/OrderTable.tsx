@@ -26,15 +26,16 @@ interface OrderTableProps {
   onDeleteOrder: (orderId: string) => void;
   onStatusChange: (orderId: string, status: 'pending' | 'confirmed' | 'cancelled') => void;
   onEditShipment: (order: Order) => void;
+  batchTitle?: string; // Added batchTitle prop
 }
 
 const OrderTable: React.FC<OrderTableProps> = ({
-//   orders, // Added to destructure
+  // orders, // Added to destructure
   filteredOrders,
   customers,
   batches,
-//   companies,
-//   bankAccounts,
+  // companies,
+  // bankAccounts,
   loading,
   selectedOrders,
   itemsPerPage,
@@ -50,6 +51,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
   onDeleteOrder,
   onStatusChange,
   onEditShipment,
+  batchTitle, // Added batchTitle prop
 }) => {
   console.log('OrderTable rendered with tableType:', tableType);
 
@@ -179,15 +181,22 @@ const OrderTable: React.FC<OrderTableProps> = ({
     return batch ? batch.batch_id : '-';
   };
 
-//   const getCompanyName = (companyId: string) => {
-//     const company = companies.find((c) => c.id === companyId);
-//     return company ? company.company_name : '-';
-//   };
+  // Utility to shorten invoice number
+  const getShortInvoiceNo = (invoiceNo: string) => {
+    if (!invoiceNo) return '';
+    if (invoiceNo.length <= 4) return invoiceNo;
+    return invoiceNo.slice(0, 2) + '.....';
+  };
 
-//   const getBankAccountName = (bankAccountId: string) => {
-//     const bankAccount = bankAccounts.find((ba) => ba.id === bankAccountId);
-//     return bankAccount ? `${bankAccount.account_name} (${bankAccount.bank_name})` : '-';
-//   };
+  // const getCompanyName = (companyId: string) => {
+  //   const company = companies.find((c) => c.id === companyId);
+  //   return company ? company.company_name : '-';
+  // };
+
+  // const getBankAccountName = (bankAccountId: string) => {
+  //   const bankAccount = bankAccounts.find((ba) => ba.id === bankAccountId);
+  //   return bankAccount ? `${bankAccount.account_name} (${bankAccount.bank_name})` : '-';
+  // };
 
   const getProductName = (productId: string, batchId: string) => {
     const batch = batches.find((b) => b.id === batchId);
@@ -437,196 +446,96 @@ const OrderTable: React.FC<OrderTableProps> = ({
         </div>
       </div>
 
+      {/* --- BATCH TITLE --- */}
+      {tableType === 'orders' && batchTitle && (
+        <div className="mb-2 text-lg font-semibold text-blue-400">Batch: {batchTitle}</div>
+      )}
+
       <div className="overflow-x-auto export-compatible" ref={tableRef}>
-        <table className="min-w-full bg-gray-800 rounded-lg">
+        <table className="min-w-full bg-gray-800 rounded-lg border-separate border-spacing-0">
           <thead>
-            <tr className="text-gray-400 text-left">
-              <th className="py-3 px-4 w-16">
-                <input
-                  type="checkbox"
-                  checked={selectedOrders.length === currentItems.length && currentItems.length > 0}
-                  onChange={onSelectAll}
-                  disabled={loading}
-                  className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
-                />
-              </th>
-              
-              
-              {/* <th className="py-3 px-4">Company</th>
-              <th className="py-3 px-4">Bank Account</th> */}
-              {tableType === 'orders' ? (
-                <>
-                {/* <th className="py-3 px-4">Order ID</th> */}
-                <th className="py-3 px-4">Invoice No</th>
-                <th className="py-3 px-4">Customer</th>
-                <th className="py-3 px-4">Batch</th>
-                  <th className="py-3 px-4">Product</th>
-                  <th className="py-3 px-6">Qty</th>
-                  <th className="py-3 px-6">Price</th>
-                  <th className="py-3 px-4">Amount</th>
-                </>
-              ) : (
-                <>
-                 <th className="py-3 px-4">Invoice No</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Shipment</th>
-                  <th className="py-3 px-4">Customer Phone</th>
-                  <th className="py-3 px-4">Customer Address</th>
-                  <th className="py-3 px-4">Noted</th>
-                </>
-              )}
+            <tr className="text-gray-400 text-left border-b border-gray-600">
+              <th className="py-3 px-4 w-16"></th>
+              <th className="py-3 px-4">Invoice No</th>
+              <th className="py-3 px-4">Customer</th>
+              {/* <th className="py-3 px-4">Batch</th> */}
+              <th className="py-3 px-4">Product</th>
+              <th className="py-3 px-4 text-right">Qty (kg)</th>
+              <th className="py-3 px-4 text-right">Price</th>
+              <th className="py-3 px-4 text-right">Amount</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentItems.map((order, index) => (
-              <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-700">
-                <td className="py-4 px-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedOrders.includes(order.id)}
-                    onChange={() => onSelectOrder(order.id)}
-                    disabled={loading}
-                    className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500"
-                  />
-                </td>
-               
-                
-                {/* <td className="py-4 px-4 text-white">{getCompanyName(order.company_id)}</td>
-                <td className="py-4 px-4 text-white">{getBankAccountName(order.bank_account_id)}</td> */}
-                {tableType === 'orders' ? (
-                  <>
-                   {/* <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td> */}
-                   <td className="py-4 px-4 text-white">{getInvoiceNo(order)}</td>
-                   <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
-                  <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
-                    <td className="py-4 px-4 text-white">
-                      {order.order_items && order.order_items.length > 0 ? (
-                        <div className="space-y-1">
-                          {order.order_items.map((item, idx) => (
-                            <div key={idx}>
-                              {getProductName(item.product_id, order.batch_id)}
-                              {item.qty ? ` (${item.qty} jerigen)` : ''}
-                              {item.price ? ` @ Rp${item.price.toLocaleString('id-ID')}` : ''}
+            {currentItems.map((order, index) => {
+              const orderItems = order.order_items || [];
+              const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
+              const totalAmount = getTotalAmount(order);
+              return orderItems.length === 0 ? (
+                <tr key={order.id} className="border-b border-gray-700">
+                  <td className="py-4 px-4" rowSpan={1}>
+                    <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
+                  </td>
+                  <td className="py-4 px-4 text-white" rowSpan={1}>{getInvoiceNo(order)}</td>
+                  <td className="py-4 px-4 text-white" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
+                  {/* <td className="py-4 px-4 text-white" rowSpan={1}>{getBatchId(order.batch_id)}</td> */}
+                  <td className="py-4 px-4 text-white">-</td>
+                  <td className="py-4 px-4 text-right">-</td>
+                  <td className="py-4 px-4 text-right">-</td>
+                  <td className="py-4 px-4 text-right">Rp {totalAmount.toLocaleString('id-ID')}</td>
+                  <td className="py-4 px-4">{order.status}</td>
+                  <td className="py-4 px-4"></td>
+                </tr>
+              ) : (
+                orderItems.map((item, idx) => (
+                  <tr key={order.id + '-' + idx} className={idx === orderItems.length - 1 ? 'border-b border-gray-700' : ''}>
+                    {idx === 0 && (
+                      <>
+                        <td className="py-4 px-4" rowSpan={rowSpan}>
+                          <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
+                        </td>
+                        <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
+                        <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
+                        {/* <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getBatchId(order.batch_id)}</td> */}
+                      </>
+                    )}
+                    <td className="py-4 px-4 text-white align-top">{getProductName(item.product_id, order.batch_id)}</td>
+                    <td className="py-4 px-4 text-right align-top">{item.qty}</td>
+                    <td className="py-4 px-4 text-right align-top">Rp {item.price.toLocaleString('id-ID')}</td>
+                    <td className="py-4 px-4 text-right align-top">Rp {(item.qty * item.price).toLocaleString('id-ID')}</td>
+                    {idx === 0 && (
+                      <>
+                        <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
+                        <td className="py-4 px-4" rowSpan={rowSpan}>
+                          {/* ...actions... */}
+                          <div className="group inline-block">
+                            <button className="text-gray-400 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                              </svg>
+                            </button>
+                            <div className="absolute right-0 z-10 hidden group-hover:block bg-gray-800 border border-gray-700 rounded shadow-lg min-w-[120px]">
+                              <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-blue-400">View Details</button>
+                              <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-green-400">Edit</button>
+                              <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-600">Delete</button>
+                              <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700 hover:text-yellow-600">Edit Shipment</button>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-white">
-                      {order.order_items && order.order_items.length > 0 ? (
-                        <div className="space-y-1">
-                          {order.order_items.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <button
-                                onClick={() => onEditQty(order.id, item.product_id, item.qty)}
-                                className="text-white hover:text-gray-300 flex items-center gap-1"
-                                disabled={loading}
-                              >
-                                {item.qty} kg
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-white">
-                      {order.order_items && order.order_items.length > 0 ? (
-                        <div className="space-y-1">
-                          {order.order_items.map((item, idx) => (
-                            <div key={idx}>Rp {item.price.toLocaleString('id-ID')}</div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      Rp {getTotalAmount(order).toLocaleString('id-ID')},00
-                    </td>
-                  </>
-                ) : (
-                  <>
-                  <td className="py-4 px-4 text-white">{getInvoiceNo(order)}</td>
-                    <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-white">{order.expedition || '-'}</td>
-                    <td className="py-4 px-4 text-white">{getCustomerPhone(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-white">{getCustomerAddress(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-white">{order.description || '-'}</td>
-                  </>
-                )}
-                <td className="py-4 px-4">
-                  <select
-                    value={order.status}
-                    onChange={(e) =>
-                      onStatusChange(order.id, e.target.value as 'pending' | 'confirmed' | 'cancelled')
-                    }
-                    className={`text-sm px-3 py-1 rounded-full ${getStatusColor(order.status)} focus:outline-none`}
-                    disabled={loading}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </td>
-                <td className="py-4 px-2 relative">
-                  <div className="group inline-block">
-                    <button className="text-gray-400 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="1.5"/>
-                        <circle cx="19" cy="12" r="1.5"/>
-                        <circle cx="5" cy="12" r="1.5"/>
-                      </svg>
-                    </button>
-                    <ul className="absolute right-0 z-10 hidden group-hover:block bg-gray-700 text-white rounded shadow-lg min-w-[120px] py-1">
-                      <li>
-                        <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Lihat Detail</button>
-                      </li>
-                      <li>
-                        <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Edit Order</button>
-                      </li>
-                      <li>
-                        <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Hapus Order</button>
-                      </li>
-                      {tableType === 'shipment' && (
-                        <li>
-                          <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 hover:bg-gray-600">Edit Pengiriman</button>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {tableType === 'orders' && (
-              <tr className="border-t border-gray-700 font-bold">
-                <td colSpan={7} className="py-4 px-4 text-right">
-                  Overall Total:
-                </td>
-                <td className="py-4 px-4 text-white">
-                  {getOverallTotalQtyAllProducts()}
-                </td>
-                <td className="py-4 px-4 text-white"></td>
-                <td className="py-4 px-4 text-white">
-                  Rp {getOverallTotalAmount().toLocaleString('id-ID')},00
-                </td>
-                <td className="py-4 px-4 text-white"></td>
-                <td></td>
-              </tr>
-            )}
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))
+              );
+            })}
+            {/* Total row */}
+            <tr className="border-t border-gray-600 font-bold">
+              <td colSpan={4} className="py-4 px-4 text-right">Total</td>
+              <td colSpan={2} className="py-4 px-4 text-right">Rp</td>
+              <td className="py-4 px-4 text-right">{getOverallTotalAmount().toLocaleString('id-ID')}</td>
+              <td colSpan={2}></td>
+            </tr>
           </tbody>
         </table>
       </div>

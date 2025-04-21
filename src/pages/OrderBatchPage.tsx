@@ -10,9 +10,11 @@ import {
   getBatches,
   getCompanies,
   getBankAccounts,
+  getProducts
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
+import OrderTableShipment from '../components/orders/OrderTableShipment';
 import OrderFormModal from '../components/orders/OrderFormModal';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
 import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
@@ -23,7 +25,7 @@ import TotalQtySection from '../components/orders/TotalQtySection';
 import BroadcastConfirmModal from '../components/orders/BroadcastConfirmModal';
 import BroadcastReviewModal from '../components/orders/BroadcastReviewModal';
 import { sendOrderConfirmBroadcast } from '../services/waService';
-import { Order, Customer, Batch, OrderItem, Company, BankAccount } from '../type/schema';
+import { Order, Customer, Batch, OrderItem, Company, BankAccount, Product } from '../type/schema';
 
 // Extend jsPDF with autoTable plugin types
 declare module 'jspdf' {
@@ -50,10 +52,12 @@ interface FormData {
 const OrderPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [filteredShipments, setFilteredShipments] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]); // Tambahkan state untuk companies
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]); // Tambahkan state untuk bank accounts
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -106,11 +110,7 @@ const OrderPage: React.FC = () => {
   const batchIdFilterFromUrl = searchParams.get('batch_id');
 
   useEffect(() => {
-    fetchOrders();
-    fetchCustomers();
-    fetchBatches();
-    fetchCompanies(); // Tambahkan
-    fetchBankAccounts(); // Tambahkan
+    fetchAllData();
   }, []);
 
   useEffect(() => {
@@ -126,6 +126,33 @@ const OrderPage: React.FC = () => {
   useEffect(() => {
     if (showBroadcastReview) fetchBroadcastBatchData();
   }, [showBroadcastReview]);
+
+  useEffect(() => {
+    if (activeTab === 'shipment') {
+      // Filter: hanya order dengan status 'confirmed' DAN batch sesuai batchIdFilterFromUrl
+      let shipments = orders.filter(order => order.status === 'confirmed');
+      if (batchIdFilterFromUrl) {
+        shipments = shipments.filter(order => order.batch_id === batchIdFilterFromUrl);
+      }
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        shipments = shipments.filter(
+          (order) =>
+            customers.find((c) => c.id === order.customer_id)?.name.toLowerCase().includes(query) ||
+            batches.find((b) => b.id === order.batch_id)?.batch_id.toLowerCase().includes(query) ||
+            order.status.toLowerCase().includes(query) ||
+            order.expedition?.toLowerCase().includes(query) ||
+            order.description?.toLowerCase().includes(query) ||
+            customers.find((c) => c.id === order.customer_id)?.phone?.toLowerCase().includes(query) ||
+            customers.find((c) => c.id === order.customer_id)?.address?.toLowerCase().includes(query) ||
+            companies.find((c) => c.id === order.company_id)?.company_name.toLowerCase().includes(query) ||
+            bankAccounts.find((ba) => ba.id === order.bank_account_id)?.account_name.toLowerCase().includes(query)
+        );
+      }
+      setFilteredShipments(shipments);
+      setCurrentPage(1);
+    }
+  }, [activeTab, orders, searchQuery, customers, batches, companies, bankAccounts, batchIdFilterFromUrl]);
 
   // useEffect berikut DIHAPUS agar tidak overwrite broadcastBatchData secara otomatis
   // useEffect(() => {
@@ -221,6 +248,39 @@ const OrderPage: React.FC = () => {
     } catch (error) {
 
       console.error('Error fetching batches:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const data = await getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [ordersData, customersData, batchesData, companiesData, bankAccountsData, productsData] = await Promise.all([
+        getOrders(),
+        getCustomers(),
+        getBatches(),
+        getCompanies(),
+        getBankAccounts(),
+        getProducts()
+      ]);
+      setOrders(ordersData);
+      setCustomers(customersData);
+      setBatches(batchesData);
+      setCompanies(companiesData);
+      setBankAccounts(bankAccountsData);
+      setProducts(productsData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -347,20 +407,32 @@ const OrderPage: React.FC = () => {
       if (invalidItem)
         throw new Error('Please ensure all product quantities and prices are valid positive numbers');
 
+      let needStockValidation = false;
+      if (orderToEdit) {
+        // Cek jika ada perubahan pada order_items atau qty
+        const prevItems = (orderToEdit.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
+        const currItems = (formData.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
+        needStockValidation = JSON.stringify(prevItems) !== JSON.stringify(currItems);
+      } else {
+        needStockValidation = true;
+      }
+
       const selectedBatch = batches.find((b) => b.id === formData.batch_id);
       if (!selectedBatch || !selectedBatch.batch_products)
         throw new Error('Selected batch is invalid or has no products');
 
-      for (const item of formData.order_items) {
-        const batchProduct = selectedBatch.batch_products.find(
-          (bp) => bp.product_id === item.product_id
-        );
-        if (!batchProduct)
-          throw new Error(`Product is not available in the selected batch`);
-        if (batchProduct.remaining_qty < item.qty) {
-          throw new Error(
-            `Insufficient quantity for product. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
+      if (needStockValidation) {
+        for (const item of formData.order_items) {
+          const batchProduct = selectedBatch.batch_products.find(
+            (bp) => bp.product_id === item.product_id
           );
+          if (!batchProduct)
+            throw new Error(`Product is not available in the selected batch`);
+          if (batchProduct.remaining_qty < item.qty) {
+            throw new Error(
+              `Insufficient quantity for product. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
+            );
+          }
         }
       }
 
@@ -663,6 +735,9 @@ const OrderPage: React.FC = () => {
 
   console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
 
+  // --- Dapatkan batch title dari batchIdFilter (gunakan variabel yang sudah ada di atas) ---
+  const batchTitle = batchIdFilter ? (batches.find(b => b.batch_id === batchIdFilter)?.batch_id || batchIdFilter) : '';
+
   return (
     <>
       <Navbar2 />
@@ -767,67 +842,77 @@ const OrderPage: React.FC = () => {
 
         {loading ? (
           <div className="text-center text-gray-400">Loading...</div>
+        ) : activeTab === 'shipment' ? (
+          <OrderTableShipment
+            orders={filteredShipments}
+            customers={customers}
+            batches={batches}
+            loading={loading}
+            products={products}
+          />
         ) : filteredOrders.length === 0 ? (
           <div className="text-center text-gray-400">No orders available.</div>
         ) : (
-          <OrderTable
-            key={activeTab}
-            orders={orders}
-            filteredOrders={filteredOrders}
-            customers={customers}
-            batches={batches}
-            companies={companies} // Tambahkan
-            bankAccounts={bankAccounts} // Tambahkan
-            loading={loading}
-            selectedOrders={selectedOrders}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            tableType={activeTab}
-            onSelectOrder={handleSelectOrder}
-            onSelectAll={handleSelectAll}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(items) => {
-              setItemsPerPage(items);
-              setCurrentPage(1);
-            }}
-            onEditQty={(orderId, productId, qty) => {
-              setSelectedOrderId(orderId);
-              setSelectedProductId(productId);
-              setNewQty(qty);
-              setShowQtyEditModal(true);
-            }}
-            onViewDetails={(order) => {
-              setOrderToView(order);
-              setShowDetailModal(true);
-            }}
-            onEditOrder={(order) => {
-              setOrderToEdit(order);
-              setFormData({
-                customer_id: order.customer_id,
-                batch_id: order.batch_id,
-                company_id: order.company_id, // Tambahkan
-                bank_account_id: order.bank_account_id, // Tambahkan
-                status: order.status,
-                expedition: order.expedition || '',
-                description: order.description || '',
-                order_items: order.order_items?.map((item) => ({
-                  product_id: item.product_id,
-                  qty: item.qty,
-                  price: item.price,
-                })) || [],
-              });
-              setShowEditModal(true);
-            }}
-            onDeleteOrder={(orderId) => {
-              setOrderToDelete(orderId);
-              setShowDeleteConfirm(true);
-            }}
-            onStatusChange={handleStatusChange}
-            onEditShipment={(order) => {
-              setOrderToEditShipment(order);
-              setShowShipmentEditModal(true);
-            }}
-          />
+          <div>
+            <OrderTable
+              key={activeTab}
+              orders={orders}
+              filteredOrders={filteredOrders}
+              customers={customers}
+              batches={batches}
+              companies={companies}
+              bankAccounts={bankAccounts}
+              loading={loading}
+              selectedOrders={selectedOrders}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              tableType={activeTab}
+              onSelectOrder={handleSelectOrder}
+              onSelectAll={handleSelectAll}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(items) => {
+                setItemsPerPage(items);
+                setCurrentPage(1);
+              }}
+              onEditQty={(orderId, productId, qty) => {
+                setSelectedOrderId(orderId);
+                setSelectedProductId(productId);
+                setNewQty(qty);
+                setShowQtyEditModal(true);
+              }}
+              onViewDetails={(order) => {
+                setOrderToView(order);
+                setShowDetailModal(true);
+              }}
+              onEditOrder={(order) => {
+                setOrderToEdit(order);
+                setFormData({
+                  customer_id: order.customer_id,
+                  batch_id: order.batch_id,
+                  company_id: order.company_id,
+                  bank_account_id: order.bank_account_id,
+                  status: order.status,
+                  expedition: order.expedition || '',
+                  description: order.description || '',
+                  order_items: order.order_items?.map((item) => ({
+                    product_id: item.product_id,
+                    qty: item.qty,
+                    price: item.price,
+                  })) || [],
+                });
+                setShowEditModal(true);
+              }}
+              onDeleteOrder={(orderId) => {
+                setOrderToDelete(orderId);
+                setShowDeleteConfirm(true);
+              }}
+              onStatusChange={handleStatusChange}
+              onEditShipment={(order) => {
+                setOrderToEditShipment(order);
+                setShowShipmentEditModal(true);
+              }}
+            />
+          </div>
         )}
 
         <OrderFormModal
@@ -836,8 +921,8 @@ const OrderPage: React.FC = () => {
           formData={formData}
           customers={customers}
           batches={batches}
-          companies={companies} // Tambahkan
-          bankAccounts={bankAccounts} // Tambahkan
+          companies={companies}
+          bankAccounts={bankAccounts}
           isEdit={showEditModal}
           onClose={resetForm}
           onSubmit={handleSubmit}
@@ -859,8 +944,8 @@ const OrderPage: React.FC = () => {
           order={orderToView}
           customers={customers}
           batches={batches}
-          companies={companies} // Tambahkan
-          bankAccounts={bankAccounts} // Tambahkan
+          companies={companies}
+          bankAccounts={bankAccounts}
           loading={loading}
           onClose={resetForm}
         />

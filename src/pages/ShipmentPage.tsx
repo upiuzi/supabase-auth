@@ -35,7 +35,6 @@ const ShipmentPage = () => {
     try {
       const data = await getOrders();
       setOrders(data);
-      applyFilters(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -79,10 +78,12 @@ const ShipmentPage = () => {
     setCurrentPage(1);
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
+  useEffect(() => {
     applyFilters(orders);
+  }, [searchQuery, orders, batchIdFilter]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value.toLowerCase());
   };
 
   const getCustomerName = (customerId: string) => {
