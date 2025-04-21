@@ -20,6 +20,8 @@ import QtyEditModal from '../components/orders/QtyEditModal';
 import BulkEditModal from '../components/orders/BulkEditModal';
 import ShipmentEditModal from '../components/orders/ShipmentEditModal';
 import TotalQtySection from '../components/orders/TotalQtySection';
+import BroadcastConfirmModal from '../components/orders/BroadcastConfirmModal';
+import { sendOrderConfirmBroadcast } from '../services/waService';
 import { Order, Customer, Batch, OrderItem, Company, BankAccount } from '../type/schema';
 
 // Extend jsPDF with autoTable plugin types
@@ -72,6 +74,12 @@ const OrderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [activeTab, setActiveTab] = useState<'orders' | 'shipment'>('orders');
+  const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
+  const [broadcastStatusList, setBroadcastStatusList] = useState<{ phone: string; status: 'pending' | 'sending' | 'sent' | 'failed'; message: string }[]>([]);
+  const [broadcastBatchData, setBroadcastBatchData] = useState<{ name: string; phone: string; product: string; qty: number }[]>([]);
+  const [batchIdFilter, setBatchIdFilter] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     customer_id: '',
@@ -85,7 +93,7 @@ const OrderPage: React.FC = () => {
   });
 
   const [searchParams] = useSearchParams();
-  const batchIdFilter = searchParams.get('batch_id');
+  const batchIdFilterFromUrl = searchParams.get('batch_id');
 
   useEffect(() => {
     fetchOrders();
@@ -99,7 +107,23 @@ const OrderPage: React.FC = () => {
     if (orders.length > 0) {
       applyFilters(orders);
     }
-  }, [batchIdFilter, orders, searchQuery]);
+  }, [batchIdFilterFromUrl, orders, searchQuery]);
+
+  useEffect(() => {
+    if (showBroadcastConfirm) fetchWaSessions();
+  }, [showBroadcastConfirm]);
+
+  useEffect(() => {
+    const batchId = searchParams.get('batch_id');
+    setBatchIdFilter(batchId);
+    if (batchId) {
+      fetch(`/api/databroadcastbatch/${batchId}`)
+        .then(res => res.json())
+        .then(data => setBroadcastBatchData(data || []));
+    } else {
+      setBroadcastBatchData([]);
+    }
+  }, [searchParams]);
 
   // Tambahkan fungsi untuk mengambil companies
   const fetchCompanies = async () => {
@@ -118,6 +142,28 @@ const OrderPage: React.FC = () => {
       setBankAccounts(data);
     } catch (error) {
       console.error('Error fetching bank accounts:', error);
+    }
+  };
+
+  // --- FUNGSI BARU: Ambil data broadcast batch sebelum buka modal ---
+  const fetchBroadcastBatchData = async () => {
+    setBroadcastLoading(true);
+    try {
+      // Gunakan batchIdFilterFromUrl jika ada, atau batchIdFilter state
+      const batch_id = batchIdFilterFromUrl || batchIdFilter;
+      if (!batch_id) {
+        alert('Batch belum dipilih!');
+        setBroadcastLoading(false);
+        return;
+      }
+      const res = await fetch(`http://localhost:3331/api/databroadcastbatch/${batch_id}`);
+      const data = await res.json();
+      setBroadcastBatchData(data);
+      setShowBroadcastConfirm(true);
+    } catch (err) {
+      alert('Gagal mengambil data broadcast batch');
+    } finally {
+      setBroadcastLoading(false);
     }
   };
 
@@ -154,8 +200,8 @@ const OrderPage: React.FC = () => {
 
   const applyFilters = (data: Order[]) => {
     let filtered = data;
-    if (batchIdFilter) {
-      filtered = filtered.filter((order) => order.batch_id === batchIdFilter);
+    if (batchIdFilterFromUrl) {
+      filtered = filtered.filter((order) => order.batch_id === batchIdFilterFromUrl);
     }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -531,6 +577,43 @@ const OrderPage: React.FC = () => {
     });
   };
 
+  const fetchWaSessions = async () => {
+    try {
+      const res = await fetch('http://localhost:3331/whatsapp/sessions');
+      if (!res.ok) return;
+      const data = await res.json();
+      setWaSessions(data);
+    } catch (e) {}
+  };
+
+  // --- TAMBAHKAN VALIDASI DI HANDLE BROADCAST BATCH ---
+  const handleBroadcastBatch = async (arrivalDate: string, session: string) => {
+    if (!broadcastBatchData.length) {
+      alert('Data broadcast kosong!');
+      return;
+    }
+    setBroadcastLoading(true);
+    setBroadcastStatusList(
+      broadcastBatchData.map(d => ({ phone: d.phone, status: 'pending', message: '' }))
+    );
+    for (const d of broadcastBatchData) {
+      setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sending', message: '' } : s));
+      const liter = +(d.qty * 1.1).toFixed(1);
+      const message = `Hello ${d.name}, mau konfirmasi pesanan order product ${d.product} dengan qty ${d.qty}kg atau  ${liter} liter. Akan tiba pada tanggal ${arrivalDate}. Terima kasih.`;
+      try {
+        await sendOrderConfirmBroadcast({
+          to: d.phone,
+          message,
+          session,
+        });
+        setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sent', message: 'Terkirim' } : s));
+      } catch (e: any) {
+        setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'failed', message: e?.message || 'Gagal' } : s));
+      }
+    }
+    setBroadcastLoading(false);
+  };
+
   return (
     <>
       <Navbar2 />
@@ -547,12 +630,7 @@ const OrderPage: React.FC = () => {
               className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:bg-yellow-300 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Edit Dates
             </button>
@@ -565,6 +643,16 @@ const OrderPage: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
               </svg>
               Create Order
+            </button>
+            <button
+              onClick={fetchBroadcastBatchData}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+              disabled={loading}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              Broadcast Confirm
             </button>
           </div>
         </div>
@@ -740,9 +828,11 @@ const OrderPage: React.FC = () => {
             setSelectedOrderId(null);
             setSelectedProductId(null);
             setNewQty(0);
-          } }
+          }}
           onSave={handleQtyChange}
-          onQtyChange={setNewQty} batches={[]}        />
+          onQtyChange={setNewQty}
+          batches={[]}
+        />
 
         <BulkEditModal
           show={showBulkEditModal}
@@ -763,8 +853,39 @@ const OrderPage: React.FC = () => {
           onClose={() => {
             setShowShipmentEditModal(false);
             setOrderToEditShipment(null);
-          } }
-          onSave={handleShipmentEdit} companies={[]} bankAccounts={[]}        />
+          }}
+          onSave={handleShipmentEdit}
+          companies={[]}
+          bankAccounts={[]}
+        />
+
+        <BroadcastConfirmModal
+          show={showBroadcastConfirm}
+          onClose={() => setShowBroadcastConfirm(false)}
+          onSend={handleBroadcastBatch}
+          sessions={waSessions}
+          loading={broadcastLoading}
+        />
+        {broadcastStatusList.length > 0 && (
+          <div className="mt-4">
+            <h4 className="font-bold mb-2">Status Broadcast:</h4>
+            <ul className="text-sm">
+              {broadcastStatusList.map((s, idx) => (
+                <li key={idx}>
+                  <span className="font-mono text-gray-400">{s.phone}</span>:
+                  <span className={
+                    s.status === 'sent'
+                      ? 'text-green-400'
+                      : s.status === 'failed'
+                      ? 'text-red-400'
+                      : 'text-yellow-400'
+                  }> {s.status.toUpperCase()}</span>
+                  {s.message && <span className="ml-2 text-gray-500">({s.message})</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </>
   );

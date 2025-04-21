@@ -9,7 +9,9 @@ import multer from 'multer';
 import { createCanvas } from 'canvas';
 import QRCode from 'qrcode';
 
+// Langsung masukkan nilai Supabase URL & Key
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -350,4 +352,65 @@ app.get('/whatsapp/qr-image/:session_id', async (req, res) => {
 });
 // --- END QR IMAGE ENDPOINT ---
 
+// --- Tambah endpoint broadcast WA dengan log ---
+app.post('/api/wa/broadcast', async (req, res) => {
+  console.log('[WA BROADCAST] Data Submit:', req.body);
+
+  const { to, message, session } = req.body;
+  console.log('[WA BROADCAST] Request:', { to, message, session });
+  if (!to || !message || !session) {
+    console.log('[WA BROADCAST] Error: missing parameter');
+    return res.status(400).json({ error: 'Missing parameters' });
+  }
+  try {
+    // Kirim pesan WA dengan wa-multi-session
+    await whatsapp.sendTextMessage({
+      sessionId: session,
+      to,
+      text: message,
+    });
+    console.log('[WA BROADCAST] Success:', { to, session });
+    res.json({ success: true, to, session });
+  } catch (error) {
+    console.error('[WA BROADCAST] Failed:', error);
+    res.status(500).json({ error: 'Failed to send WA', details: error?.message });
+  }
+});
+
+// --- Endpoint untuk data broadcast batch: ambil data broadcast sesuai tujuan utama ---
+app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
+  try {
+    // Hapus validasi batch, langsung ambil orders
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        customer:customer_id (name, phone),
+        order_items:order_items (
+          qty,
+          product:product_id (name)
+        )
+      `)
+      .eq('batch_id', batch_id);
+    if (ordersError) throw ordersError;
+
+    // Flatten data untuk kebutuhan broadcast
+    const result = [];
+    orders.forEach(order => {
+      (order.order_items || []).forEach(item => {
+        result.push({
+          name: order.customer?.name || '',
+          phone: order.customer?.phone || '',
+          product: item.product?.name || '',
+          qty: item.qty
+        });
+      });
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
 // --- END MULTI SESSION SUPPORT ---
