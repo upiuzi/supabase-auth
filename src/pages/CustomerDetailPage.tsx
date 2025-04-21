@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Customer, getCustomerById, getOrders } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import { getWASessions } from '../services/waService';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const CustomerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -110,11 +112,34 @@ const CustomerDetailPage = () => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    // Ambil elemen utama yang ingin di-export (tanpa WhatsApp follow up)
+    const mainContent = document.getElementById('customer-detail-pdf');
+    if (!mainContent) return;
+    // Sembunyikan section WA follow up jika ada
+    const waSection = document.getElementById('wa-followup-section');
+    if (waSection) waSection.style.display = 'none';
+    // Screenshot area
+    const canvas = await html2canvas(mainContent, { backgroundColor: '#fff', useCORS: true, scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    // Hitung skala biar muat di A4
+    const imgProps = { width: canvas.width, height: canvas.height };
+    const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
+    const imgWidth = imgProps.width * ratio;
+    const imgHeight = imgProps.height * ratio;
+    pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 20, imgWidth, imgHeight, undefined, 'FAST');
+    pdf.save(`customer_detail_${customer?.name || 'data'}.pdf`);
+    if (waSection) waSection.style.display = '';
+  };
+
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+      <div style={{ background: '#fff', color: '#222', minHeight: '100vh' }}>
         <Navbar2 />
-        <div className="container mx-auto p-8">
+        <div className="max-w-3xl mx-auto py-8 px-4">
           <p>Loading customer data...</p>
         </div>
       </div>
@@ -123,9 +148,9 @@ const CustomerDetailPage = () => {
 
   if (!customer) {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+      <div style={{ background: '#fff', color: '#222', minHeight: '100vh' }}>
         <Navbar2 />
-        <div className="container mx-auto p-8">
+        <div className="max-w-3xl mx-auto py-8 px-4">
           <p>Customer not found.</p>
           <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-blue-600 rounded">Kembali</button>
         </div>
@@ -134,86 +159,95 @@ const CustomerDetailPage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-900 text-white">
+    <div style={{ background: '#fff', color: '#222', minHeight: '100vh' }}>
       <Navbar2 />
-      <div className="container mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-4">Detail Customer</h1>
-        <div className="bg-gray-800 rounded-lg p-6 shadow-md">
-          <table className="w-full text-left">
-            <tbody>
-              <tr><td className="font-semibold pr-4">Nama</td><td>{customer.name}</td></tr>
-              <tr><td className="font-semibold pr-4">Brand</td><td>{customer.brand}</td></tr>
-              <tr><td className="font-semibold pr-4">Telepon</td><td>{customer.phone}</td></tr>
-              <tr><td className="font-semibold pr-4">Email</td><td>{customer.email}</td></tr>
-              <tr><td className="font-semibold pr-4">Alamat</td><td>{customer.address}</td></tr>
-              <tr><td className="font-semibold pr-4">Kota</td><td>{customer.city}</td></tr>
-              {/* Tambahkan field lain jika ada di schema Customer */}
-            </tbody>
-          </table>
+      <div className="max-w-3xl mx-auto py-8 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#222' }}>Detail Customer</h1>
+          <button
+            onClick={handleDownloadPDF}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold shadow"
+          >
+            Download PDF
+          </button>
         </div>
+        <div id="customer-detail-pdf" style={{ background: '#fff', color: '#222', borderRadius: 12, boxShadow: '0 2px 12px #eee', padding: 24 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: '#222' }}>Detail Customer</h1>
+          <div style={{ background: '#f3f4f6', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+            <table style={{ width: '100%', color: '#222' }}>
+              <tbody>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Nama</td><td>{customer.name}</td></tr>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Brand</td><td>{customer.brand}</td></tr>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Telepon</td><td>{customer.phone}</td></tr>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Email</td><td>{customer.email}</td></tr>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Alamat</td><td>{customer.address}</td></tr>
+                <tr><td style={{ fontWeight: 600, paddingRight: 12 }}>Kota</td><td>{customer.city}</td></tr>
+              </tbody>
+            </table>
+          </div>
 
-        {/* Order History Section */}
-        <div className="bg-gray-800 rounded-lg p-6 shadow-md mt-6">
-          <h2 className="text-xl font-bold mb-4 border-b border-gray-700 pb-2">Riwayat Pesanan</h2>
-          {orders.length === 0 ? (
-            <p className="text-gray-400">Belum ada pesanan untuk customer ini.</p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-8 mb-6">
-                <div className="flex flex-col">
-                  <span className="text-gray-400 text-sm">Total Kuantitas</span>
-                  <span className="text-2xl font-bold text-blue-400">{orderStats.totalQty.toLocaleString()}</span>
+          {/* Order History Section */}
+          <div style={{ background: '#f3f4f6', borderRadius: 8, padding: 20 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: '#222' }}>Riwayat Pesanan</h2>
+            {orders.length === 0 ? (
+              <p style={{ color: '#666' }}>Belum ada pesanan untuk customer ini.</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, marginBottom: 24 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#666', fontSize: 13 }}>Total Kuantitas</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: '#2563eb' }}>{orderStats.totalQty.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#666', fontSize: 13 }}>Total Revenue</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: '#059669' }}>Rp {orderStats.totalRevenue.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#666', fontSize: 13 }}>Order Pertama</span>
+                    <span style={{ fontWeight: 600 }}>{orderStats.firstOrderDate ? new Date(orderStats.firstOrderDate).toLocaleDateString() : '-'}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#666', fontSize: 13 }}>Order Terakhir</span>
+                    <span style={{ fontWeight: 600 }}>{orderStats.lastOrderDate ? new Date(orderStats.lastOrderDate).toLocaleDateString() : '-'}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-400 text-sm">Total Revenue</span>
-                  <span className="text-2xl font-bold text-green-400">Rp {orderStats.totalRevenue.toLocaleString()}</span>
+                <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                  <table style={{ width: '100%', background: '#fff', color: '#222', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ color: '#666', background: '#e5e7eb', textAlign: 'left' }}>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>Tanggal</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>No. Invoice</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>Kuantitas</th>
+                        <th style={{ padding: '12px 16px', fontWeight: 600 }}>Total (Rp)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((order) => {
+                        const qty = order.order_items?.reduce((sum: number, item: any) => sum + (item.qty || 0), 0) || 0;
+                        const total = order.order_items?.reduce((sum: number, item: any) => sum + ((item.qty || 0) * (item.price || 0)), 0) || 0;
+                        return (
+                          <tr key={order.id} style={{ borderTop: '1px solid #e5e7eb', background: '#fff' }}>
+                            <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>{order.created_at ? new Date(order.created_at).toLocaleDateString() : '-'}</td>
+                            <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>{order.invoice_no || '-'}</td>
+                            <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
+                            <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>Rp {total.toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-400 text-sm">Order Pertama</span>
-                  <span className="font-semibold">{orderStats.firstOrderDate ? new Date(orderStats.firstOrderDate).toLocaleDateString() : '-'}</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-gray-400 text-sm">Order Terakhir</span>
-                  <span className="font-semibold">{orderStats.lastOrderDate ? new Date(orderStats.lastOrderDate).toLocaleDateString() : '-'}</span>
-                </div>
-              </div>
-              <div className="overflow-x-auto rounded-lg border border-gray-700">
-                <table className="min-w-full bg-gray-900">
-                  <thead>
-                    <tr className="text-gray-400 text-left bg-gray-800">
-                      <th className="py-3 px-4 font-semibold">Tanggal</th>
-                      <th className="py-3 px-4 font-semibold">No. Invoice</th>
-                      <th className="py-3 px-4 font-semibold">Kuantitas</th>
-                      <th className="py-3 px-4 font-semibold">Total (Rp)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => {
-                      const qty = order.order_items?.reduce((sum: number, item: any) => sum + (item.qty || 0), 0) || 0;
-                      const total = order.order_items?.reduce((sum: number, item: any) => sum + ((item.qty || 0) * (item.price || 0)), 0) || 0;
-                      return (
-                        <tr key={order.id} className="border-t border-gray-700 hover:bg-gray-800 transition-colors">
-                          <td className="py-2 px-4 whitespace-nowrap">{order.created_at ? new Date(order.created_at).toLocaleDateString() : '-'}</td>
-                          <td className="py-2 px-4 whitespace-nowrap">{order.invoice_no || '-'}</td>
-                          <td className="py-2 px-4 whitespace-nowrap">{qty.toLocaleString()}</td>
-                          <td className="py-2 px-4 whitespace-nowrap">Rp {total.toLocaleString()}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </div>
         </div>
-
         {/* WhatsApp Follow Up Section */}
-        <div className="bg-gray-800 rounded-lg p-6 shadow-md mt-6 flex flex-col gap-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xl font-bold">Follow Up WhatsApp</h2>
-            <div className="flex gap-2 items-center">
+        <div id="wa-followup-section" style={{ background: '#232b36', borderRadius: 12, padding: 24, marginTop: 24, color: '#222', boxShadow: '0 2px 12px #eee', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#232b36', opacity: 0.8 }}>Follow Up WhatsApp</h2>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <select
-                className="px-2 py-1 rounded border border-gray-700 bg-gray-900 text-white focus:outline-none"
+                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #444', background: '#232b36', color: '#fff', outline: 'none' }}
                 value={selectedSession}
                 onChange={e => setSelectedSession(e.target.value)}
                 disabled={sending || sessions.length === 0}
@@ -231,7 +265,7 @@ const CustomerDetailPage = () => {
               {customer?.phone && (
                 <button
                   onClick={handleSendWA}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-semibold shadow disabled:bg-green-300"
+                  style={{ background: '#22c55e', color: '#fff', padding: '8px 16px', borderRadius: 6, fontWeight: 600, boxShadow: '0 1px 4px #0002', border: 'none', cursor: 'pointer', opacity: sending || !selectedSession ? 0.6 : 1 }}
                   disabled={sending || !selectedSession}
                 >
                   {sending ? 'Mengirim...' : 'Kirim via WhatsApp'}
@@ -240,17 +274,17 @@ const CustomerDetailPage = () => {
             </div>
           </div>
           {waStatus !== 'idle' && (
-            <div className={`text-sm ${waStatus==='sent' ? 'text-green-400' : waStatus==='failed' ? 'text-red-400' : 'text-yellow-400'}`}>{waStatusMsg}</div>
+            <div style={{ fontSize: 14, color: waStatus==='sent' ? '#22c55e' : waStatus==='failed' ? '#ef4444' : '#eab308' }}>{waStatusMsg}</div>
           )}
           <textarea
-            className="w-full bg-gray-900 text-white rounded p-3 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+            style={{ width: '100%', background: '#18202b', color: '#fff', borderRadius: 8, padding: 12, border: '1px solid #444', outline: 'none', fontSize: 16, marginTop: 8, minHeight: 90 }}
             rows={4}
             value={waMessage}
             onChange={e => setWaMessage(e.target.value)}
           />
         </div>
 
-        <button onClick={() => navigate(-1)} className="mt-6 px-4 py-2 bg-blue-600 rounded">Kembali</button>
+        <button onClick={() => navigate(-1)} style={{ marginTop: 24, padding: '10px 24px', background: '#2563eb', color: '#fff', borderRadius: 8, fontWeight: 600, border: 'none', fontSize: 16, cursor: 'pointer', boxShadow: '0 1px 4px #0001' }}>Kembali</button>
       </div>
     </div>
   );
