@@ -605,21 +605,6 @@ const OrderPage: React.FC = () => {
     } catch (e) {}
   };
 
-  // --- Tambahkan fungsi untuk mencatat log broadcast ke backend ---
-  const logBroadcast = async (customer_id: string, message: string, session: string) => {
-    try {
-      await fetch('http://localhost:3331/api/bclogs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer_id, message, session }),
-      });
-    } catch (err) {
-      // Logging error bisa diabaikan jika hanya untuk audit
-      console.error('Gagal mencatat log broadcast:', err);
-    }
-  };
-
-  // --- Modifikasi handleBroadcastBatch agar mencatat log setiap kali kirim WA ---
   const handleBroadcastBatch = async (arrivalDate: string, session: string) => {
     if (!broadcastBatchData.length) {
       alert('Data broadcast kosong!');
@@ -639,10 +624,6 @@ const OrderPage: React.FC = () => {
           message,
           session,
         });
-        // --- Catat log broadcast ---
-        if (d.customer_id) {
-          await logBroadcast(d.customer_id, message, session);
-        }
         setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sent', message: 'Terkirim' } : s));
       } catch (e: any) {
         setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'failed', message: e?.message || 'Gagal' } : s));

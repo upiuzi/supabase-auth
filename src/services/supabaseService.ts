@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Company, BankAccount, Customer, Product, Batch, Order, OrderItem, Pipeline, Exhibition, BatchProduct, BatchShipment, PaymentLog } from "../type/schema";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../config";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Helper function to handle Supabase errors
 const handleSupabaseError = (error: any) => {

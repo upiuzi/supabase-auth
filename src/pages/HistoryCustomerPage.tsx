@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import supabase from "../supabase";
-interface BCLog {
+interface Log {
   id: string;
   customer_id: string;
   message: string;
@@ -11,7 +11,7 @@ interface BCLog {
 }
 
 const HistoryCustomerPage: React.FC = () => {
-  const [logs, setLogs] = useState<BCLog[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -20,7 +20,7 @@ const HistoryCustomerPage: React.FC = () => {
       setLoading(true);
       // Join ke customer untuk dapat nama & phone
       const { data, error } = await supabase
-        .from('bclogs')
+        .from('logs')
         .select('id,customer_id,message,session,log_date,customer:customer_id(name,phone)')
         .order('log_date', { ascending: false });
       if (!error && data) {
