@@ -134,6 +134,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     return order.order_items.reduce((total, item) => total + item.qty, 0);
   };
 
+  const getInvoiceNo = (order: Order) => order.invoice_no || order.id;
+
   const generatePDF = (order: Order) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -147,7 +149,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     yPos += 8;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Invoice #: ${order.id}`, pageWidth / 2, yPos, { align: 'center' });
+    doc.text(`Invoice #: ${getInvoiceNo(order)}`, pageWidth / 2, yPos, { align: 'center' });
     yPos += 6;
     const currentDate = new Date().toLocaleDateString('id-ID', {
       day: '2-digit',
@@ -248,7 +250,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       align: 'center',
     });
 
-    doc.save(`Invoice_${order.id}_Standard.pdf`);
+    doc.save(`Invoice_${getInvoiceNo(order)}_Standard.pdf`);
   };
 
   const generatePDFBlob = (order: Order): Promise<Blob> => {
@@ -265,7 +267,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       yPos += 8;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Invoice #: ${order.id}`, pageWidth / 2, yPos, { align: 'center' });
+      doc.text(`Invoice #: ${getInvoiceNo(order)}`, pageWidth / 2, yPos, { align: 'center' });
       yPos += 6;
       const currentDate = new Date().toLocaleDateString('id-ID', {
         day: '2-digit',
@@ -491,7 +493,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         </div>
         <div className="mt-6">
           <h3 className="font-bold text-lg mb-2">Order Information</h3>
-          <p>Order ID: {order.id}</p>
+          <div className="mb-2"><span className="font-semibold">Invoice No:</span> {getInvoiceNo(order)}</div>
           <p>Status: {order.status}</p>
           <p>Expedition: {order.expedition || '-'}</p>
           <p>Description: {order.description || '-'}</p>

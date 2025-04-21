@@ -654,25 +654,43 @@ export const getOrderById = async (id: string): Promise<Order | null> => {
   }
 };
 
+export function generateInvoiceNo(dateString?: string): string {
+  // dateString: ISO string, fallback to now
+  let date = dateString ? new Date(dateString) : new Date();
+  // Format: ddMMyyyy
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const day = pad(date.getDate());
+  const month = pad(date.getMonth() + 1);
+  const year = date.getFullYear();
+  const datePart = `${day}${month}${year}`;
+  // Random 4-5 digit int
+  const rand = Math.floor(1000 + Math.random() * 90000);
+  return `${datePart}${rand}`;
+}
+
 export const createOrder = async (
-  order: { 
-    customer_id: string; 
-    batch_id: string; 
+  order: {
+    customer_id: string;
+    batch_id: string;
     company_id: string;
     bank_account_id: string;
     status: string;
     expedition?: string;
     description?: string;
+    created_at?: string; // allow override
   },
   orderItems: { product_id: string; qty: number; price: number; }[]
 ): Promise<Order> => {
   try {
     // Hitung total_amount dari order_items
     const totalAmount = orderItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    // Generate invoice_no
+    const nowIso = order.created_at || new Date().toISOString();
+    const invoice_no = generateInvoiceNo(nowIso);
 
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
-      .insert([{ 
+      .insert([{
         customer_id: order.customer_id,
         batch_id: order.batch_id,
         company_id: order.company_id,
@@ -683,24 +701,23 @@ export const createOrder = async (
         total_amount: totalAmount,
         paid_amount: 0,
         payment_status: 'unpaid',
-        created_at: new Date().toISOString() 
+        created_at: nowIso,
+        invoice_no,
       }])
       .select()
       .single();
-    
     if (orderError) throw orderError;
-  
+
     const orderItemsWithOrderId = orderItems.map(item => ({
       ...item,
       order_id: orderData.id
     }));
-  
+
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItemsWithOrderId);
-    
     if (itemsError) throw itemsError;
-  
+
     for (const item of orderItems) {
       const { data: batchProduct, error: bpError } = await supabase
         .from('batch_products')
@@ -708,21 +725,17 @@ export const createOrder = async (
         .eq('batch_id', order.batch_id)
         .eq('product_id', item.product_id)
         .single();
-      
       if (bpError) throw bpError;
-    
       if (batchProduct) {
         const { error: updateError } = await supabase
           .from('batch_products')
-          .update({ 
-            remaining_qty: batchProduct.remaining_qty - item.qty 
+          .update({
+            remaining_qty: batchProduct.remaining_qty - item.qty
           })
           .eq('id', batchProduct.id);
-        
         if (updateError) throw updateError;
       }
     }
-  
     return getOrderById(orderData.id) as Promise<Order>;
   } catch (error) {
     handleSupabaseError(error);

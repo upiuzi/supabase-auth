@@ -108,6 +108,7 @@ export interface Order {
   bank_account_id: string;
   status: 'pending' | 'confirmed' | 'cancelled';
   created_at: string;
+  invoice_no?: string;
   order_items?: OrderItem[];
   expedition?: string;
   description?: string;

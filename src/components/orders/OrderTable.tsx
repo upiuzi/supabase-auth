@@ -135,7 +135,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.left = '-9999px';
-        tempContainer.style.backgroundColor = '#1F2937';
         tempContainer.appendChild(tableClone);
         document.body.appendChild(tempContainer);
 
@@ -289,6 +288,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
     return buttons;
   };
+
+  const getInvoiceNo = (order: Order) => order.invoice_no || order.id;
 
   return (
     <>
@@ -456,6 +457,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
               {tableType === 'orders' ? (
                 <>
                 <th className="py-3 px-4">Order ID</th>
+                <th className="py-3 px-4">Invoice No</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Batch</th>
                   <th className="py-3 px-4">Product</th>
@@ -465,7 +467,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </>
               ) : (
                 <>
-                 <th className="py-3 px-4">Customer</th>
+                 <th className="py-3 px-4">Invoice No</th>
+                  <th className="py-3 px-4">Customer</th>
                   <th className="py-3 px-4">Shipment</th>
                   <th className="py-3 px-4">Customer Phone</th>
                   <th className="py-3 px-4">Customer Address</th>
@@ -495,6 +498,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 {tableType === 'orders' ? (
                   <>
                    <td className="py-4 px-4 text-gray-300">{'order' + (indexOfFirstItem + index + 1)}</td>
+                   <td className="py-4 px-4 text-white">{getInvoiceNo(order)}</td>
                    <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
                   <td className="py-4 px-4 text-white">{getBatchId(order.batch_id)}</td>
                     <td className="py-4 px-4 text-white">
@@ -552,7 +556,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   </>
                 ) : (
                   <>
-                  <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
+                  <td className="py-4 px-4 text-white">{getInvoiceNo(order)}</td>
+                    <td className="py-4 px-4 text-white">{getCustomerName(order.customer_id)}</td>
                     <td className="py-4 px-4 text-white">{order.expedition || '-'}</td>
                     <td className="py-4 px-4 text-white">{getCustomerPhone(order.customer_id)}</td>
                     <td className="py-4 px-4 text-white">{getCustomerAddress(order.customer_id)}</td>
