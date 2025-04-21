@@ -49,6 +49,40 @@ app.post('/message/send-text', async (req, res) => {
       to,
       text,
     });
+
+    // --- LOG BROADCAST TO bclogs ---
+    // Find customer_id by phone number (assuming phone is stored in E.164 format, e.g. '6281234567890')
+    let customer_id = null;
+    try {
+      const { data: customers, error: custError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', to)
+        .maybeSingle();
+      if (custError) {
+        console.error('[WA SEND-TEXT] Error finding customer:', custError);
+      } else if (customers && customers.id) {
+        customer_id = customers.id;
+      } else {
+        console.warn(`[WA SEND-TEXT] No customer found for phone: ${to}`);
+      }
+    } catch (lookupErr) {
+      console.error('[WA SEND-TEXT] Exception during customer lookup:', lookupErr);
+    }
+    // Only log if customer_id found
+    if (customer_id) {
+      const { error: logError } = await supabase
+        .from('bclogs')
+        .insert([{ customer_id, message: text, session }]);
+      if (logError) {
+        console.error('[WA SEND-TEXT] Failed to log broadcast:', logError);
+      } else {
+        console.log('[WA SEND-TEXT] Broadcast log saved');
+      }
+    } else {
+      console.warn(`[WA SEND-TEXT] Broadcast not logged: customer_id not found for phone ${to}`);
+    }
+
     res.json({ success: true, message: 'Message sent' });
   } catch (error) {
     console.error('Error sending WhatsApp message:', error);
@@ -370,11 +404,63 @@ app.post('/api/wa/broadcast', async (req, res) => {
       text: message,
     });
     console.log('[WA BROADCAST] Success:', { to, session });
+
+    // --- LOG BROADCAST TO bclogs ---
+    // Find customer_id by phone number (assuming phone is stored in E.164 format, e.g. '6281234567890')
+    let customer_id = null;
+    try {
+      const { data: customers, error: custError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', to)
+        .maybeSingle();
+      if (custError) {
+        console.error('[WA BROADCAST] Error finding customer:', custError);
+      } else if (customers && customers.id) {
+        customer_id = customers.id;
+      } else {
+        console.warn(`[WA BROADCAST] No customer found for phone: ${to}`);
+      }
+    } catch (lookupErr) {
+      console.error('[WA BROADCAST] Exception during customer lookup:', lookupErr);
+    }
+
+    // Only log if customer_id found
+    if (customer_id) {
+      const { error: logError } = await supabase
+        .from('bclogs')
+        .insert([{ customer_id, message, session }]);
+      if (logError) {
+        console.error('[WA BROADCAST] Failed to log broadcast:', logError);
+      } else {
+        console.log('[WA BROADCAST] Broadcast log saved');
+      }
+    } else {
+      console.warn(`[WA BROADCAST] Broadcast not logged: customer_id not found for phone ${to}`);
+    }
+
     res.json({ success: true, to, session });
   } catch (error) {
     console.error('[WA BROADCAST] Failed:', error);
     res.status(500).json({ error: 'Failed to send WA', details: error?.message });
   }
+});
+// --- END MULTI SESSION SUPPORT ---
+
+// Endpoint untuk mencatat log broadcast WA
+app.post('/api/bclogs', async (req, res) => {
+  const { customer_id, message, session } = req.body;
+  if (!customer_id || !message || !session) {
+    return res.status(400).json({ error: 'customer_id, message, and session are required' });
+  }
+  const { data, error } = await supabase
+    .from('bclogs')
+    .insert([{ customer_id, message, session }]);
+  if (error) {
+    return res.status(500).json({ error: 'Failed to insert log', details: error.message });
+  }
+  console.log('bc berhasil di simpan di bclogs upiiiii'); // Tambah log sukses
+  res.json({ success: true, data });
 });
 
 // --- Endpoint untuk data broadcast batch: ambil data broadcast sesuai tujuan utama ---
@@ -414,19 +500,3 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
   }
 });
 // --- END MULTI SESSION SUPPORT ---
-
-// Endpoint untuk mencatat log broadcast WA
-app.post('/api/bclogs', async (req, res) => {
-  const { customer_id, message, session } = req.body;
-  if (!customer_id || !message || !session) {
-    return res.status(400).json({ error: 'customer_id, message, and session are required' });
-  }
-  const { data, error } = await supabase
-    .from('bclogs')
-    .insert([{ customer_id, message, session }]);
-  if (error) {
-    return res.status(500).json({ error: 'Failed to insert log', details: error.message });
-  }
-  console.log('bc berhasil di simpan di bclogs upiiiii'); // Tambah log sukses
-  res.json({ success: true, data });
-});

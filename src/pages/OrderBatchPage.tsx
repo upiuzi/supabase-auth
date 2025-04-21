@@ -611,13 +611,27 @@ const OrderPage: React.FC = () => {
       return;
     }
     setBroadcastLoading(true);
-    setBroadcastStatusList(
-      broadcastBatchData.map(d => ({ phone: d.phone, status: 'pending', message: '' }))
-    );
+
+    // 1. Group by phone
+    const grouped: Record<string, { name: string; phone: string; products: { product: string; qty: number }[] }> = {};
     for (const d of broadcastBatchData) {
+      if (!grouped[d.phone]) {
+        grouped[d.phone] = { name: d.name, phone: d.phone, products: [] };
+      }
+      grouped[d.phone].products.push({ product: d.product, qty: d.qty });
+    }
+    const groupedList = Object.values(grouped);
+
+    setBroadcastStatusList(
+      groupedList.map(d => ({ phone: d.phone, status: 'pending', message: '' }))
+    );
+    for (const d of groupedList) {
       setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sending', message: '' } : s));
-      const liter = +(d.qty * 1.1).toFixed(1);
-      const message = `Hello ${d.name}, mau konfirmasi pesanan order product ${d.product} dengan qty ${d.qty}kg atau  ${liter} liter. Akan tiba pada tanggal ${arrivalDate}. Terima kasih.`;
+      // Build message listing all products
+      const productLines = d.products.map(
+        p => `- ${p.product}: ${p.qty}kg atau ${(p.qty * 1.1).toFixed(1)} liter`
+      ).join('\n');
+      const message = `Hello ${d.name}, mau konfirmasi pesanan order:\n${productLines}\nAkan tiba pada tanggal ${arrivalDate}. Terima kasih.`;
       try {
         await sendOrderConfirmBroadcast({
           to: d.phone,
