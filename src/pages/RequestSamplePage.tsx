@@ -9,6 +9,7 @@ import {
   Customer, 
   Product
 } from '../services/supabaseService';
+import { getWASessions } from '../services/waService';
 import Navbar2 from '../components/Navbar2';
 
 type SampleItem = {
@@ -42,10 +43,21 @@ const RequestSamplePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const [showWAModal, setShowWAModal] = useState(false);
+  const [waForm, setWaForm] = useState<{to: string; message: string; session: string}>({to: '', message: '', session: ''});
+  const [waLoading, setWaLoading] = useState(false);
+  const [waStatus, setWaStatus] = useState<'idle'|'sent'|'failed'>('idle');
+  const [waStatusMsg, setWaStatusMsg] = useState('');
+  const [selectedSample, setSelectedSample] = useState<any | null>(null);
+  const [sessions, setSessions] = useState<{ session_id: string; status: string }[]>([]);
+
   useEffect(() => {
     fetchSamples();
     fetchCustomers();
     fetchProducts();
+    getWASessions()
+      .then(data => setSessions(data))
+      .catch(() => setSessions([]));
   }, []);
 
   const fetchSamples = async () => {
@@ -196,29 +208,55 @@ const RequestSamplePage = () => {
     return customer ? customer.name : '-';
   };
 
+  const handleSendWA = async () => {
+    setWaLoading(true);
+    setWaStatus('idle');
+    setWaStatusMsg('');
+    try {
+      const payload = {
+        to: waForm.to,
+        message: waForm.message,
+        session: waForm.session,
+      };
+      const res = await import('../services/waService').then(mod => mod.sendOrderConfirmBroadcast(payload));
+      if (res.status === 200 || res.status === 201) {
+        setWaStatus('sent');
+        setWaStatusMsg('Pesan WhatsApp berhasil dikirim!');
+      } else {
+        setWaStatus('failed');
+        setWaStatusMsg('Gagal mengirim pesan WhatsApp.');
+      }
+    } catch (e: any) {
+      setWaStatus('failed');
+      setWaStatusMsg(e?.message || 'Gagal mengirim pesan WhatsApp.');
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
   return (
-    <>
+    <main className="min-h-screen bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900">
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-8">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">Request Sample</h1>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-500 dark:bg-blue-700 text-white dark:text-gray-200 px-4 py-2 rounded hover:bg-blue-600 dark:hover:bg-blue-800"
           >
             Add Sample Request
           </button>
         </div>
 
         <div className="mb-4 flex gap-4 items-center">
-          <label className="text-gray-300">Show per page:</label>
+          <label className="text-gray-300 dark:text-gray-600">Show per page:</label>
           <select
             value={itemsPerPage}
             onChange={(e) => {
               setItemsPerPage(parseInt(e.target.value));
               setCurrentPage(1);
             }}
-            className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+            className="bg-gray-700 dark:bg-gray-200 border border-gray-600 dark:border-gray-300 rounded px-3 py-2 text-white dark:text-gray-900"
           >
             <option value={10}>10</option>
             <option value={50}>50</option>
@@ -232,18 +270,18 @@ const RequestSamplePage = () => {
             placeholder="Search sample requests..."
             value={searchQuery}
             onChange={handleSearch}
-            className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 bg-gray-800 dark:bg-gray-200 border border-gray-700 dark:border-gray-300 rounded-lg text-white dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-400 dark:text-gray-600">Loading...</div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-800 rounded-lg">
+              <table className="min-w-full bg-gray-800 dark:bg-white rounded-lg">
                 <thead>
-                  <tr className="text-gray-400 text-left">
+                  <tr className="text-gray-400 dark:text-gray-600 text-left">
                     <th className="py-3 px-4">Name</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Address</th>
@@ -255,33 +293,47 @@ const RequestSamplePage = () => {
                 </thead>
                 <tbody>
                   {currentItems.map((sample) => (
-                    <tr key={sample.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4">{sample.customers?.name || '-'}</td>
-                      <td className="py-3 px-4">{sample.customers?.email || '-'}</td>
-                      <td className="py-3 px-4">{sample.customers?.address || '-'}</td>
-                      <td className="py-3 px-4">{sample.customers?.phone || '-'}</td>
-                      <td className="py-3 px-4">
-                        {sample.sample_items?.map((item: any) => item.product?.name).join(', ') || '-'}
-                      </td>
-                      <td className="py-3 px-4">{sample.status}</td>
+                    <tr key={sample.id} className="border-t border-gray-700 dark:border-gray-200 hover:bg-gray-700 dark:hover:bg-gray-200">
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.customers?.name || '-'}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.customers?.email || '-'}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.customers?.address || '-'}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.customers?.phone || '-'}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.sample_items?.map((item: any) => item.product?.name).join(', ') || '-'}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{sample.status}</td>
                       <td className="py-3 px-4 flex gap-2">
                         <button
                           onClick={() => handleEdit(sample)}
-                          className="text-blue-400 hover:text-blue-300"
+                          className="text-blue-400 dark:text-blue-600 hover:text-blue-300 dark:hover:text-blue-700"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(sample.id)}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-red-400 dark:text-red-600 hover:text-red-300 dark:hover:text-red-700"
                         >
                           Delete
                         </button>
                         <button
                           onClick={() => printSample(sample)}
-                          className="text-green-400 hover:text-green-300"
+                          className="text-gray-400 dark:text-gray-700 hover:text-green-400 dark:hover:text-green-600"
                         >
                           Print
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedSample(sample);
+                            setWaForm({
+                              to: sample.customers?.phone || '',
+                              message: `Halo ${sample.customers?.name || ''}, berikut update sample Anda...`,
+                              session: sessions[0]?.session_id || ''
+                            });
+                            setShowWAModal(true);
+                            setWaStatus('idle');
+                            setWaStatusMsg('');
+                          }}
+                          className="text-green-500 dark:text-green-700 hover:text-green-600 dark:hover:text-green-800"
+                        >
+                          Update WA
                         </button>
                       </td>
                     </tr>
@@ -298,8 +350,8 @@ const RequestSamplePage = () => {
                   onClick={() => paginate(page)}
                   className={`px-4 py-2 rounded ${
                     page === currentPage
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-700 text-white hover:bg-gray-600'
+                      ? 'bg-blue-500 dark:bg-blue-700 text-white dark:text-gray-200'
+                      : 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-600 dark:hover:bg-gray-300'
                   }`}
                 >
                   {page}
@@ -311,8 +363,8 @@ const RequestSamplePage = () => {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-lg text-white">
+          <div className="fixed inset-0 bg-gray-900 dark:bg-gray-100 bg-opacity-75 flex items-center justify-center">
+            <div className="bg-gray-800 dark:bg-gray-200 p-6 rounded-lg w-full max-w-lg text-white dark:text-gray-900">
               <h2 className="text-xl font-bold mb-4">{sampleToEdit ? 'Edit Sample Request' : 'Add Sample Request'}</h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
@@ -321,7 +373,7 @@ const RequestSamplePage = () => {
                     name="customer_id"
                     value={formData.customer_id}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700"
+                    className="w-full border border-gray-600 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900"
                     required
                   >
                     <option value="">Select Customer</option>
@@ -336,7 +388,7 @@ const RequestSamplePage = () => {
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700"
+                    className="w-full border border-gray-600 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900"
                     required
                   >
                     <option value="Request">Request</option>
@@ -351,7 +403,7 @@ const RequestSamplePage = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700"
+                    className="w-full border border-gray-600 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900"
                   />
                 </div>
                 <div className="mb-4">
@@ -361,7 +413,7 @@ const RequestSamplePage = () => {
                       <select
                         value={item.product_id}
                         onChange={(e) => handleSampleItemChange(index, 'product_id', e.target.value)}
-                        className="flex-1 border border-gray-600 rounded px-3 py-2 bg-gray-700"
+                        className="flex-1 border border-gray-600 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900"
                       >
                         <option value="">Select Product</option>
                         {products.map((p) => (
@@ -373,12 +425,12 @@ const RequestSamplePage = () => {
                         placeholder="Qty"
                         value={item.qty}
                         onChange={(e) => handleSampleItemChange(index, 'qty', e.target.value)}
-                        className="w-20 border border-gray-600 rounded px-3 py-2 bg-gray-700"
+                        className="w-20 border border-gray-600 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900"
                       />
                       <button
                         type="button"
                         onClick={() => handleRemoveSampleItem(index)}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-red-400 dark:text-red-600 hover:text-red-300 dark:hover:text-red-700"
                       >
                         Remove
                       </button>
@@ -387,7 +439,7 @@ const RequestSamplePage = () => {
                   <button
                     type="button"
                     onClick={handleAddSampleItem}
-                    className="mt-2 bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                    className="mt-2 bg-green-500 dark:bg-green-700 text-white dark:text-gray-200 px-3 py-1 rounded hover:bg-green-600 dark:hover:bg-green-800"
                   >
                     Add Item
                   </button>
@@ -396,14 +448,14 @@ const RequestSamplePage = () => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                    className="px-4 py-2 bg-gray-600 dark:bg-gray-200 text-white dark:text-gray-900 rounded hover:bg-gray-500 dark:hover:bg-gray-300"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
+                    className="px-4 py-2 bg-blue-500 dark:bg-blue-700 text-white dark:text-gray-200 rounded hover:bg-blue-600 dark:hover:bg-blue-800 disabled:bg-blue-400 dark:disabled:bg-blue-600"
                   >
                     {loading ? 'Saving...' : 'Save'}
                   </button>
@@ -412,8 +464,70 @@ const RequestSamplePage = () => {
             </div>
           </div>
         )}
+
+        {/* Modal Update WA */}
+        {showWAModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+              <h2 className="text-xl font-bold mb-4">Update WhatsApp Sample</h2>
+              <div className="mb-3">
+                <label className="block mb-1 text-gray-700">No. Tujuan</label>
+                <input
+                  className="w-full border border-gray-300 rounded p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+                  value={waForm.to}
+                  onChange={e => setWaForm({...waForm, to: e.target.value})}
+                  placeholder="Masukkan nomor tujuan"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="block mb-1 text-gray-700">Pesan</label>
+                <textarea
+                  className="w-full border border-gray-300 rounded p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+                  rows={4}
+                  value={waForm.message}
+                  onChange={e => setWaForm({...waForm, message: e.target.value})}
+                  placeholder="Tulis pesan WhatsApp..."
+                />
+              </div>
+              <div className="mb-3">
+                <label className="block mb-1 text-gray-700">Session</label>
+                <select
+                  className="w-full border border-gray-300 rounded p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={waForm.session}
+                  onChange={e => setWaForm({ ...waForm, session: e.target.value })}
+                >
+                  <option value="">Pilih session</option>
+                  {sessions.map(s => (
+                    <option key={s.session_id} value={s.session_id}>
+                      {s.session_id} ({s.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {waStatus !== 'idle' && (
+                <div className={`mb-2 ${waStatus==='sent'?'text-green-600':'text-red-600'}`}>{waStatusMsg}</div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                  onClick={() => setShowWAModal(false)}
+                  disabled={waLoading}
+                >
+                  Tutup
+                </button>
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  onClick={handleSendWA}
+                  disabled={waLoading}
+                >
+                  {waLoading ? 'Mengirim...' : 'Kirim WA'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+    </main>
   );
 };
 

@@ -190,9 +190,9 @@ const BankAccountPage = () => {
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900">
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-8">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold">Bank Accounts</h1>
@@ -200,7 +200,7 @@ const BankAccountPage = () => {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2 dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -216,9 +216,9 @@ const BankAccountPage = () => {
               placeholder="Search bank accounts..."
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 pl-10 bg-gray-800 dark:bg-gray-200 border border-gray-700 dark:border-gray-300 rounded-lg text-white dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-400 dark:text-gray-500 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -229,14 +229,14 @@ const BankAccountPage = () => {
         ) : (
           <>
             <div className="mb-4 flex gap-4 items-center">
-              <label className="text-gray-300">Show per page:</label>
+              <label className="text-gray-300 dark:text-gray-600">Show per page:</label>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(parseInt(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="bg-gray-700 dark:bg-gray-200 border border-gray-600 dark:border-gray-300 rounded px-3 py-2 text-white dark:text-gray-900"
               >
                 <option value={10}>10</option>
                 <option value={50}>50</option>
@@ -244,9 +244,9 @@ const BankAccountPage = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-800 rounded-lg">
+              <table className="min-w-full bg-gray-800 dark:bg-white rounded-lg">
                 <thead>
-                  <tr className="text-gray-400 text-left">
+                  <tr className="text-gray-400 dark:text-gray-600 text-left">
                     <th className="py-3 px-4">ID</th>
                     <th className="py-3 px-4">Account Name</th>
                     <th className="py-3 px-4">Account Number</th>
@@ -258,17 +258,17 @@ const BankAccountPage = () => {
                 </thead>
                 <tbody>
                   {currentItems.map((account, index) => (
-                    <tr key={account.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4 text-gray-300">{"ba0" + (indexOfFirstItem + index + 1)}</td>
-                      <td className="py-3 px-4 text-white">{account.account_name}</td>
-                      <td className="py-3 px-4 text-white">{account.account_number}</td>
-                      <td className="py-3 px-4 text-white">{account.bank_name}</td>
-                      <td className="py-3 px-4 text-white">{account.balance.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-white">{account.is_default ? 'Yes' : 'No'}</td>
+                    <tr key={account.id} className="border-t border-gray-700 dark:border-gray-200 hover:bg-gray-700 dark:hover:bg-gray-200">
+                      <td className="py-3 px-4 text-gray-300 dark:text-gray-700">{"ba0" + (indexOfFirstItem + index + 1)}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{account.account_name}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{account.account_number}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{account.bank_name}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{account.balance.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-white dark:text-gray-900">{account.is_default ? 'Yes' : 'No'}</td>
                       <td className="py-3 px-4">
                         <button
                           onClick={() => handleEdit(account)}
-                          className="text-gray-400 hover:text-blue-400 mr-3"
+                          className="text-gray-400 dark:text-gray-700 hover:text-blue-400 dark:hover:text-blue-600 mr-3"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -276,7 +276,7 @@ const BankAccountPage = () => {
                         </button>
                         <button
                           onClick={() => handleDelete(account.id)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-gray-400 dark:text-gray-700 hover:text-red-400 dark:hover:text-red-600"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18" />
@@ -292,21 +292,21 @@ const BankAccountPage = () => {
             {/* Pagination Controls */}
             {filteredBankAccounts.length > 0 && (
               <div className="mt-4 flex justify-between items-center">
-                <div className="text-gray-400">
+                <div className="text-gray-400 dark:text-gray-600">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredBankAccounts.length)} of {filteredBankAccounts.length} entries
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => paginate(1)}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-700 dark:bg-gray-200 rounded hover:bg-gray-600 dark:hover:bg-gray-300 disabled:bg-gray-800 dark:disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:text-gray-600 text-white dark:text-gray-900"
                   >
                     First
                   </button>
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-700 dark:bg-gray-200 rounded hover:bg-gray-600 dark:hover:bg-gray-300 disabled:bg-gray-800 dark:disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:text-gray-600 text-white dark:text-gray-900"
                   >
                     Previous
                   </button>
@@ -317,10 +317,10 @@ const BankAccountPage = () => {
                       disabled={typeof page !== 'number'}
                       className={`px-4 py-2 rounded ${
                         page === currentPage
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-blue-500 dark:bg-blue-600 text-white'
                           : typeof page === 'number'
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-gray-700 text-gray-400 cursor-default'
+                          ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 hover:bg-gray-600 dark:hover:bg-gray-300'
+                          : 'bg-gray-700 dark:bg-gray-200 text-gray-400 dark:text-gray-600 cursor-default'
                       }`}
                     >
                       {page}
@@ -329,14 +329,14 @@ const BankAccountPage = () => {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-700 dark:bg-gray-200 rounded hover:bg-gray-600 dark:hover:bg-gray-300 disabled:bg-gray-800 dark:disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:text-gray-600 text-white dark:text-gray-900"
                   >
                     Next
                   </button>
                   <button
                     onClick={() => paginate(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-700 dark:bg-gray-200 rounded hover:bg-gray-600 dark:hover:bg-gray-300 disabled:bg-gray-800 dark:disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:text-gray-600 text-white dark:text-gray-900"
                   >
                     Last
                   </button>
@@ -348,19 +348,19 @@ const BankAccountPage = () => {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
+          <div className="fixed inset-0 bg-gray-600 dark:bg-gray-900 bg-opacity-50 flex items-center justify-center">
+            <div className="bg-gray-800 dark:bg-gray-200 p-6 rounded-lg w-full max-w-md text-white dark:text-gray-900">
               <h2 className="text-xl font-bold mb-4">
                 {selectedBankAccount ? 'Edit Bank Account' : 'Add Bank Account'}
               </h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Company</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">Company</label>
                   <select
                     name="company_id"
                     value={formData.company_id}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-700 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="" disabled>Select a company</option>
@@ -372,51 +372,51 @@ const BankAccountPage = () => {
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Account Name</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">Account Name</label>
                   <input
                     type="text"
                     name="account_name"
                     value={formData.account_name}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-700 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Account Number</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">Account Number</label>
                   <input
                     type="text"
                     name="account_number"
                     value={formData.account_number}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-700 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Bank Name</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">Bank Name</label>
                   <input
                     type="text"
                     name="bank_name"
                     value={formData.bank_name}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-700 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Balance</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">Balance</label>
                   <input
                     type="number"
                     name="balance"
                     value={formData.balance}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-700 dark:border-gray-300 rounded px-3 py-2 bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">
+                  <label className="block text-sm font-medium mb-1 text-gray-300 dark:text-gray-600">
                     <input
                       type="checkbox"
                       name="is_default"
@@ -431,14 +431,14 @@ const BankAccountPage = () => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-600 dark:bg-gray-300 rounded hover:bg-gray-500 dark:hover:bg-gray-400 text-white dark:text-gray-900"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400"
+                    className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-blue-400 dark:disabled:bg-blue-500"
                   >
                     {loading ? 'Saving...' : 'Save'}
                   </button>
@@ -448,7 +448,7 @@ const BankAccountPage = () => {
           </div>
         )}
       </div>
-    </>
+    </main>
   );
 };
 

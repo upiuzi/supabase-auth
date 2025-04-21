@@ -100,11 +100,11 @@ const ExhibitionPage = () => {
   };
 
   return (
-    <>
+    <main className="min-h-screen bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900">
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Exhibitions</h1>
+          <h1 className="text-3xl font-bold dark:text-gray-900">Exhibitions</h1>
           <button
             onClick={() => {
               setEditExhibition(null);
@@ -118,16 +118,16 @@ const ExhibitionPage = () => {
               });
               setShowModal(true);
             }}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-600 dark:bg-blue-300 text-white dark:text-gray-900 px-4 py-2 rounded hover:bg-blue-700 dark:hover:bg-blue-400"
           >
             Add Exhibition
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-gray-800 rounded-lg">
+          <table className="min-w-full bg-gray-800 dark:bg-gray-200 rounded-lg">
             <thead>
-              <tr className="text-gray-400 text-left">
+              <tr className="text-gray-400 dark:text-gray-700 text-left">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Website</th>
                 <th className="py-3 px-4">Address</th>
@@ -139,7 +139,7 @@ const ExhibitionPage = () => {
             </thead>
             <tbody>
               {exhibitions.map((ex) => (
-                <tr key={ex.id} className="border-t border-gray-700 hover:bg-gray-700">
+                <tr key={ex.id} className="border-t border-gray-700 dark:border-gray-400 hover:bg-gray-700 dark:hover:bg-gray-300">
                   <td className="py-3 px-4">{ex.name}</td>
                   <td className="py-3 px-4">{ex.website}</td>
                   <td className="py-3 px-4">{ex.address}</td>
@@ -160,13 +160,13 @@ const ExhibitionPage = () => {
                         });
                         setShowModal(true);
                       }}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
+                      className="text-blue-400 dark:text-blue-600 hover:text-blue-300 dark:hover:text-blue-500 text-sm"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(ex.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
+                      className="text-red-400 dark:text-red-600 hover:text-red-300 dark:hover:text-red-500 text-sm"
                     >
                       Delete
                     </button>
@@ -179,7 +179,7 @@ const ExhibitionPage = () => {
 
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
+            <div className="bg-gray-800 dark:bg-gray-200 p-6 rounded-lg w-full max-w-md text-white dark:text-gray-900">
               <h2 className="text-xl font-bold mb-4">{editExhibition ? 'Edit Exhibition' : 'Add Exhibition'}</h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
@@ -188,7 +188,7 @@ const ExhibitionPage = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                     required
                   />
                 </div>
@@ -198,7 +198,7 @@ const ExhibitionPage = () => {
                     type="text"
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                   />
                 </div>
                 <div className="mb-4">
@@ -206,7 +206,7 @@ const ExhibitionPage = () => {
                   <textarea
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                   />
                 </div>
                 <div className="mb-4">
@@ -215,7 +215,7 @@ const ExhibitionPage = () => {
                     type="date"
                     value={formData.date_event}
                     onChange={(e) => setFormData({ ...formData, date_event: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                   />
                 </div>
                 <div className="mb-4">
@@ -224,7 +224,7 @@ const ExhibitionPage = () => {
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                   />
                 </div>
                 <div className="mb-4">
@@ -232,20 +232,20 @@ const ExhibitionPage = () => {
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                    className="w-full p-2 rounded bg-gray-700 dark:bg-gray-300 border border-gray-600 dark:border-gray-400"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                    className="px-4 py-2 bg-gray-600 dark:bg-gray-400 rounded hover:bg-gray-500 dark:hover:bg-gray-300"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
+                    className="px-4 py-2 bg-blue-600 dark:bg-blue-300 rounded hover:bg-blue-700 dark:hover:bg-blue-400"
                   >
                     Save
                   </button>
@@ -255,7 +255,7 @@ const ExhibitionPage = () => {
           </div>
         )}
       </div>
-    </>
+    </main>
   );
 };
 

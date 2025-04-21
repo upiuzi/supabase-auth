@@ -9,7 +9,7 @@ const PipelinePage = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
-    const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editPipeline, setEditPipeline] = useState<Pipeline | null>(null);
   const [formData, setFormData] = useState<{
     customer_id: string;
@@ -52,8 +52,9 @@ const PipelinePage = () => {
 
   return (
     <>
+    <div style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6 min-h-screen bg-gray-100 text-gray-900">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Pipeline Kanban Board</h1>
           <button
@@ -67,7 +68,7 @@ const PipelinePage = () => {
               });
               setShowModal(true);
             }}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 shadow"
           >
             Add Prospect
           </button>
@@ -75,75 +76,75 @@ const PipelinePage = () => {
         <div className="flex gap-4 overflow-x-auto">
           {statuses.map((status) => (
             <div
-            key={status}
-            className="flex-1 min-w-[250px] bg-gray-800 rounded-lg p-4"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={async (e) => {
-              e.preventDefault();
-              const pipelineId = e.dataTransfer.getData('text/plain');
-              try {
-                await updatePipeline(pipelineId, { status });
-                fetchPipelines();
-              } catch (error) {
-                console.error('Error updating pipeline status:', error);
-              }
-            }}
-          >
-            <h2 className="text-xl font-semibold mb-4">{status}</h2>
-            <div className="flex flex-col gap-4">
-              {pipelines
-                .filter((p) => p.status === status)
-                .map((p) => (
-                  <div
-                    key={p.id}
-                    className="bg-gray-700 p-3 rounded shadow"
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', p.id);
-                    }}
-                  >
-                    <h3 className="font-bold">{p.customer?.name}</h3>
-                    <p className="text-sm text-gray-300">{p.product?.name}</p>
-                    <p className="text-xs text-gray-400 mt-1">{p.notes}</p>
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => {
-                          setEditPipeline(p);
-                          setFormData({
-                            customer_id: p.customer_id,
-                            product_id: p.product_id,
-                            status: p.status,
-                            notes: p.notes || ''
-                          });
-                          setShowModal(true);
-                        }}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Delete this prospect?')) {
-                            await deletePipeline(p.id);
-                            fetchPipelines();
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Delete
-                      </button>
+              key={status}
+              className="flex-1 min-w-[250px] bg-white rounded-xl p-4 shadow ring-1 ring-gray-200"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={async (e) => {
+                e.preventDefault();
+                const pipelineId = e.dataTransfer.getData('text/plain');
+                try {
+                  await updatePipeline(pipelineId, { status });
+                  fetchPipelines();
+                } catch (error) {
+                  console.error('Error updating pipeline status:', error);
+                }
+              }}
+            >
+              <h2 className="text-xl font-semibold mb-4">{status}</h2>
+              <div className="flex flex-col gap-4">
+                {pipelines
+                  .filter((p) => p.status === status)
+                  .map((p) => (
+                    <div
+                      key={p.id}
+                      className="bg-gray-100 p-3 rounded shadow border border-gray-200 text-gray-900"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', p.id);
+                      }}
+                    >
+                      <h3 className="font-bold text-gray-900">{p.customer?.name}</h3>
+                      <p className="text-sm text-gray-700">{p.product?.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">{p.notes}</p>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => {
+                            setEditPipeline(p);
+                            setFormData({
+                              customer_id: p.customer_id,
+                              product_id: p.product_id,
+                              status: p.status,
+                              notes: p.notes || ''
+                            });
+                            setShowModal(true);
+                          }}
+                          className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Delete this pipeline?')) {
+                              await deletePipeline(p.id);
+                              fetchPipelines();
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
           ))}
         </div>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-full max-w-md text-gray-900 shadow-lg">
             <h2 className="text-xl font-bold mb-4">{editPipeline ? 'Edit Prospect' : 'Add Prospect'}</h2>
             <form
               onSubmit={async (e) => {
@@ -163,11 +164,11 @@ const PipelinePage = () => {
               }}
             >
               <div className="mb-4">
-                <label className="block mb-1">Customer</label>
+                <label className="block mb-1 text-gray-700">Customer</label>
                 <select
                   value={formData.customer_id}
                   onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                  className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                  className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                   required
                 >
                   <option value="">Select Customer</option>
@@ -179,11 +180,11 @@ const PipelinePage = () => {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block mb-1">Product</label>
+                <label className="block mb-1 text-gray-700">Product</label>
                 <select
                   value={formData.product_id || ''}
                   onChange={(e) => setFormData({ ...formData, product_id: e.target.value || null })}
-                  className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                  className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                 >
                   <option value="">Select Product</option>
                   {products.map((p) => (
@@ -194,11 +195,11 @@ const PipelinePage = () => {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block mb-1">Status</label>
+                <label className="block mb-1 text-gray-700">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Pipeline['status'] })}
-                  className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                  className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                 >
                   {statuses.map((s) => (
                     <option key={s} value={s}>
@@ -208,11 +209,11 @@ const PipelinePage = () => {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block mb-1">Notes</label>
+                <label className="block mb-1 text-gray-700">Notes</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full p-2 rounded bg-gray-700 border border-gray-600"
+                  className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -222,13 +223,13 @@ const PipelinePage = () => {
                     setShowModal(false);
                     setEditPipeline(null);
                   }}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500"
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-gray-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
+                  className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 text-white"
                 >
                   Save
                 </button>
@@ -237,6 +238,7 @@ const PipelinePage = () => {
           </div>
         </div>
       )}
+      </div>
     </>
   );
 };

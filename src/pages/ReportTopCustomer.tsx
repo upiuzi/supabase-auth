@@ -103,14 +103,14 @@ export default function ReportTopCustomer() {
   return (
     <>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6 min-h-screen bg-gray-100 text-gray-900">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold">Top Customer Report</h1>
           <div className="flex gap-4">
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
             >
               {Array.from({ length: 5 }, (_, idx) => currentYear - 2 + idx).map((y) => (
                 <option key={y} value={y}>
@@ -121,7 +121,7 @@ export default function ReportTopCustomer() {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-              className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
             >
               <option value="desc">Qty Terbanyak</option>
               <option value="asc">Qty Terendah</option>
@@ -130,12 +130,12 @@ export default function ReportTopCustomer() {
         </div>
 
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-600">Loading...</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-gray-800 rounded-lg">
+            <table className="min-w-full bg-white rounded-lg">
               <thead>
-                <tr className="text-gray-400 text-left">
+                <tr className="text-gray-700 text-left">
                   <th className="py-3 px-4">Customer</th>
                   {MONTHS.map((month) => (
                     <th key={month} className="py-3 px-4">
@@ -149,27 +149,27 @@ export default function ReportTopCustomer() {
                 {uniqueCustomers.map((customer) => (
                   <tr
                     key={customer}
-                    className="border-t border-gray-700 hover:bg-gray-700"
+                    className="border-t border-gray-200 hover:bg-gray-100"
                   >
-                    <td className="py-3 px-4">{customer}</td>
+                    <td className="py-3 px-4 text-gray-900">{customer}</td>
                     {MONTHS.map((month) => (
-                      <td key={month} className="py-3 px-4 text-center">
+                      <td key={month} className="py-3 px-4 text-center text-gray-700">
                         {groupedData[customer][month] ?? 0}
                       </td>
                     ))}
-                    <td className="py-3 px-4 text-center font-bold">
+                    <td className="py-3 px-4 text-center font-bold text-gray-900">
                       {getTotalForCustomer(customer)}
                     </td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-gray-600 font-bold">
-                  <td className="py-3 px-4">Total</td>
+                <tr className="border-t-2 border-gray-300 font-bold">
+                  <td className="py-3 px-4 text-gray-900">Total</td>
                   {MONTHS.map((month) => (
-                    <td key={month} className="py-3 px-4 text-center">
+                    <td key={month} className="py-3 px-4 text-center text-gray-900">
                       {getTotalForMonth(month)}
                     </td>
                   ))}
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-3 px-4 text-center text-gray-900">
                     {getGrandTotal()}
                   </td>
                 </tr>

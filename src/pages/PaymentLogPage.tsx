@@ -206,22 +206,26 @@ const PaymentLogPage = () => {
   };
 
   return (
-    <>
+    <div style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">Payment Logs</h1>
-            <p className="text-gray-400 mt-1">Manage your payment logs</p>
-          </div>
+      <div className="container mx-auto p-6 min-h-screen bg-gray-100 text-gray-900">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Payment Log</h1>
           <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+            onClick={() => {
+              setShowModal(true);
+              setSelectedPaymentLog(null);
+              setFormData({
+                order_id: '',
+                amount: 0,
+                payment_date: '',
+                payment_method: '',
+                notes: ''
+              });
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 shadow"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Payment Log
+            + Add Payment
           </button>
         </div>
 
@@ -232,7 +236,7 @@ const PaymentLogPage = () => {
               placeholder="Search payment logs..."
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 pl-10 bg-gray-200 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -241,18 +245,18 @@ const PaymentLogPage = () => {
         </div>
 
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-600">Loading...</div>
         ) : (
           <>
             <div className="mb-4 flex gap-4 items-center">
-              <label className="text-gray-300">Show per page:</label>
+              <label className="text-gray-600">Show per page:</label>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(parseInt(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+                className="bg-gray-200 border border-gray-300 rounded px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={10}>10</option>
                 <option value={50}>50</option>
@@ -260,9 +264,9 @@ const PaymentLogPage = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-800 rounded-lg">
+              <table className="min-w-full bg-gray-200 rounded-lg">
                 <thead>
-                  <tr className="text-gray-400 text-left">
+                  <tr className="text-gray-600 text-left">
                     <th className="py-3 px-4">ID</th>
                     <th className="py-3 px-4">Order ID</th>
                     <th className="py-3 px-4">Amount</th>
@@ -274,17 +278,17 @@ const PaymentLogPage = () => {
                 </thead>
                 <tbody>
                   {currentItems.map((log, index) => (
-                    <tr key={log.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4 text-gray-300">{"pl0" + (indexOfFirstItem + index + 1)}</td>
-                      <td className="py-3 px-4 text-white">{log.order_id}</td>
-                      <td className="py-3 px-4 text-white">{log.amount.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-white">{new Date(log.payment_date).toLocaleDateString()}</td>
-                      <td className="py-3 px-4 text-white">{log.payment_method || '-'}</td>
-                      <td className="py-3 px-4 text-white">{log.notes || '-'}</td>
+                    <tr key={log.id} className="border-t border-gray-300 hover:bg-gray-200">
+                      <td className="py-3 px-4 text-gray-600">{"pl0" + (indexOfFirstItem + index + 1)}</td>
+                      <td className="py-3 px-4 text-gray-900">{log.order_id}</td>
+                      <td className="py-3 px-4 text-gray-900">{log.amount.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-gray-900">{new Date(log.payment_date).toLocaleDateString()}</td>
+                      <td className="py-3 px-4 text-gray-900">{log.payment_method || '-'}</td>
+                      <td className="py-3 px-4 text-gray-900">{log.notes || '-'}</td>
                       <td className="py-3 px-4">
                         <button
                           onClick={() => handleEdit(log)}
-                          className="text-gray-400 hover:text-blue-400 mr-3"
+                          className="text-gray-600 hover:text-blue-600 mr-3"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -293,7 +297,7 @@ const PaymentLogPage = () => {
                         <button
                           onClick={() => handleDelete(log.id)}
                           disabled={loading}
-                          className="text-gray-400 hover:text-red-400 disabled:text-gray-600"
+                          className="text-gray-600 hover:text-red-600 disabled:text-gray-400"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18" />
@@ -309,21 +313,21 @@ const PaymentLogPage = () => {
             {/* Pagination Controls */}
             {filteredPaymentLogs.length > 0 && (
               <div className="mt-4 flex justify-between items-center">
-                <div className="text-gray-400">
+                <div className="text-gray-600">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPaymentLogs.length)} of {filteredPaymentLogs.length} entries
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => paginate(1)}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900"
                   >
                     First
                   </button>
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900"
                   >
                     Previous
                   </button>
@@ -336,8 +340,8 @@ const PaymentLogPage = () => {
                         page === currentPage
                           ? 'bg-blue-500 text-white'
                           : typeof page === 'number'
-                          ? 'bg-gray-700 text-white hover:bg-gray-600'
-                          : 'bg-gray-700 text-gray-400 cursor-default'
+                          ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                          : 'bg-gray-200 text-gray-400 cursor-default'
                       }`}
                     >
                       {page}
@@ -346,14 +350,14 @@ const PaymentLogPage = () => {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900"
                   >
                     Next
                   </button>
                   <button
                     onClick={() => paginate(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900"
                   >
                     Last
                   </button>
@@ -365,19 +369,17 @@ const PaymentLogPage = () => {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
-              <h2 className="text-xl font-bold mb-4">
-                {selectedPaymentLog ? 'Edit Payment Log' : 'Add Payment Log'}
-              </h2>
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl w-full max-w-md text-gray-900 shadow-lg">
+              <h2 className="text-xl font-bold mb-4">{selectedPaymentLog ? 'Edit Payment Log' : 'Add Payment Log'}</h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Order</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Order</label>
                   <select
                     name="order_id"
                     value={formData.order_id}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="" disabled>Select an order</option>
@@ -389,45 +391,45 @@ const PaymentLogPage = () => {
                   </select>
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Amount</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Amount</label>
                   <input
                     type="number"
                     name="amount"
                     value={formData.amount}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                     step="0.01"
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Payment Date</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Payment Date</label>
                   <input
                     type="datetime-local"
                     name="payment_date"
                     value={formData.payment_date}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Payment Method</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Payment Method</label>
                   <input
                     type="text"
                     name="payment_method"
                     value={formData.payment_method}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Notes</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Notes</label>
                   <textarea
                     name="notes"
                     value={formData.notes}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={4}
                   />
                 </div>
@@ -435,7 +437,7 @@ const PaymentLogPage = () => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-gray-900"
                   >
                     Cancel
                   </button>
@@ -453,7 +455,7 @@ const PaymentLogPage = () => {
         )}
       </div>
       <ToastContainer position="top-right" autoClose={3000} />
-    </>
+    </div>
   );
 };
 

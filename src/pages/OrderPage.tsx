@@ -520,9 +520,9 @@ const OrderPage: React.FC = () => {
   };
 
   return (
-    <>
+    <div className="bg-white text-gray-900" style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6 min-h-screen">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold">Orders</h1>
@@ -532,7 +532,7 @@ const OrderPage: React.FC = () => {
             <button
               onClick={() => setShowBulkEditModal(true)}
               disabled={selectedOrders.length === 0 || loading}
-              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:bg-yellow-300 flex items-center gap-2"
+              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:bg-yellow-300"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -546,7 +546,7 @@ const OrderPage: React.FC = () => {
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-600"
               disabled={loading}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -569,14 +569,15 @@ const OrderPage: React.FC = () => {
                   : searchType === 'name' ? 'Cari Nama Customer...'
                   : 'Cari Batch...'
               }
-              className="border bg-gray-900 border-gray-700 text-white px-10 py-2 rounded w-full"
+              className="border border-gray-300 text-gray-900 px-10 py-2 rounded w-full placeholder-gray-400 bg-white"
               value={searchQuery}
               onChange={handleSearch}
               style={{ minWidth: 220 }}
+              autoComplete="off"
             />
           </div>
           <select
-            className="border bg-gray-900 border-gray-700 text-white px-2 py-2 rounded"
+            className="border border-gray-300 text-gray-900 px-2 py-2 rounded"
             value={searchType}
             onChange={(e) => setSearchType(e.target.value as 'invoice' | 'name' | 'batch')}
             style={{ minWidth: 140 }}
@@ -586,7 +587,7 @@ const OrderPage: React.FC = () => {
             <option value="batch">Search by Batch</option>
           </select>
           <select
-            className="border bg-gray-900 border-gray-700 text-white px-2 py-2 rounded"
+            className="border border-gray-300 text-gray-900 px-2 py-2 rounded"
             value={sortByQty}
             onChange={(e) => setSortByQty(e.target.value as 'desc' | 'asc')}
             style={{ minWidth: 140 }}
@@ -597,7 +598,7 @@ const OrderPage: React.FC = () => {
         </div>
 
         <div className="mb-6">
-          <div className="flex border-b border-gray-700">
+          <div className="flex border-b border-gray-300">
             <button
               className={`px-4 py-2 text-sm font-medium ${
                 activeTab === 'orders'
@@ -605,7 +606,6 @@ const OrderPage: React.FC = () => {
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               onClick={() => {
-                console.log('Switching to Orders tab');
                 setActiveTab('orders');
               }}
             >
@@ -618,7 +618,6 @@ const OrderPage: React.FC = () => {
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               onClick={() => {
-                console.log('Switching to Shipment tab');
                 setActiveTab('shipment');
               }}
             >
@@ -758,7 +757,7 @@ const OrderPage: React.FC = () => {
           onSave={handleShipmentEdit}
         />
       </div>
-    </>
+    </div>
   );
 };
 

@@ -300,141 +300,129 @@ const BatchPage = () => {
   return (
     <>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-bold">Batches</h1>
-            <p className="text-gray-400 mt-1">Manage your production batches</p>
-          </div>
+      <div style={{backgroundColor: '#ffffff' }}>
+      <div className="container mx-auto p-6 min-h-screen bg-white text-gray-900">
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold">Batch</h1>
+          <p className="text-gray-600 mt-1">Manage your product batches and allocations</p>
+        </div>
+        <div className="mb-4 flex flex-wrap gap-2 items-center">
+          <input
+            type="text"
+            placeholder="Search batch or product..."
+            value={searchQuery}
+            onChange={handleSearch}
+            className="px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <select
+            value={statusFilter}
+            onChange={handleStatusFilter}
+            className="px-4 py-2 border border-gray-300 rounded bg-white text-gray-900"
+          >
+            <option value="ALL">All Status</option>
+            <option value="Available">Available</option>
+            <option value="Partially Sold">Partially Sold</option>
+            <option value="Sold Out">Sold Out</option>
+          </select>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+            className="ml-auto px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Create Batch
+            + Create Batch
           </button>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              placeholder="Search batches..."
-              value={searchQuery}
-              onChange={handleSearch}
-              className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={handleStatusFilter}
-              className="appearance-none bg-gray-800 border border-gray-700 rounded-lg p-3 pr-8 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Status</option>
-              <option value="Available">Available</option>
-              <option value="Partially Sold">Partially Sold</option>
-              <option value="Sold Out">Sold Out</option>
-            </select>
-            <svg className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
         </div>
 
         {/* Batch List */}
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-600">Loading...</div>
         ) : filteredBatches.length === 0 ? (
-          <div className="text-center text-gray-400">No batches available.</div>
+          <div className="text-center text-gray-600">No batches available.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" style={{backgroundColor: '#fffff'}}>
             {filteredBatches.map((batch) => (
               <div 
                 key={batch.id} 
-                className="bg-gray-800 p-6 rounded-lg shadow relative hover:bg-gray-700"
+                className="bg-white p-6 rounded-xl shadow-lg ring-1 ring-gray-200 hover:ring-blue-200 transition-shadow duration-150 relative"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-semibold">
-                    Batch #{batch.batch_id}
-                  </h3>
-                  <span className={`text-sm px-3 py-1 rounded-full ${getBatchStatusColor(batch)}`}>
-                    {getBatchStatus(batch)}
-                  </span>
-                </div>
-                {batch.batch_products && batch.batch_products.length > 0 ? (
-                  batch.batch_products.map((bp, index) => (
-                    <div key={index} className="mb-2">
-                      <p className="text-gray-400">{getProductName(bp.product_id)}</p>
-                      <div className="w-full bg-gray-700 rounded-full h-2.5">
-                        <div
-                          className="bg-blue-500 h-2.5 rounded-full"
-                          style={{ width: `${(bp.remaining_qty / bp.initial_qty) * 100}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-sm text-gray-400">
-                        {bp.remaining_qty} / {bp.initial_qty}
-                      </p>
+                <div className="flex flex-col justify-between h-full p-0">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-semibold">
+                        Batch #{batch.batch_id}
+                      </h3>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400">No products</p>
-                )}
-                <div className="absolute top-4 right-4 flex gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(batch);
-                    }}
-                    className="text-gray-400 hover:text-blue-400"
-                    title="Edit Batch"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(batch.id);
-                    }}
-                    className="text-gray-400 hover:text-red-400"
-                    title="Delete Batch"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12M3 7h18" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleBatchClick(batch.id);
-                    }}
-                    className="text-gray-400 hover:text-yellow-400"
-                    title="View Orders"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleShipmentClick(batch.id);
-                    }}
-                    className="text-gray-400 hover:text-green-400"
-                    title="View Shipments"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
+                    {batch.batch_products && batch.batch_products.length > 0 ? (
+                      batch.batch_products.map((bp, index) => (
+                        <div key={index} className="mb-2">
+                          <p className="text-gray-600">{getProductName(bp.product_id)}</p>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div
+                              className="bg-blue-500 h-2.5 rounded-full"
+                              style={{ width: `${(bp.remaining_qty / bp.initial_qty) * 100}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {bp.remaining_qty} / {bp.initial_qty}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600">No products</p>
+                    )}
+                  </div>
+                  <div className="mt-auto flex justify-center pt-2">
+                    <span className={`px-5 py-2 text-base font-bold rounded-full ${getBatchStatusColor(batch)}`}>{getBatchStatus(batch)}</span>
+                  </div>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(batch);
+                      }}
+                      className="text-gray-600 hover:text-blue-600"
+                      title="Edit Batch"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536M9 13h3l8-8a2.828 2.828 0 10-4-4l-8 8v3z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(batch.id);
+                      }}
+                      className="text-gray-600 hover:text-red-600"
+                      title="Delete Batch"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBatchClick(batch.id);
+                      }}
+                      className="text-gray-600 hover:text-yellow-600"
+                      title="View Orders"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-6a2 2 0 012-2h6" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShipmentClick(batch.id);
+                      }}
+                      className="text-gray-600 hover:text-green-600"
+                      title="View Shipments"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -444,29 +432,29 @@ const BatchPage = () => {
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
+            <div className="bg-white p-6 rounded-lg w-full max-w-md text-gray-900">
               <h2 className="text-xl font-bold mb-4">
                 {selectedBatch ? 'Edit Batch' : 'Add Batch'}
               </h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Batch ID</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Batch ID</label>
                   <input
                     type="text"
                     name="batch_id"
                     value={formData.batch_id}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1 text-gray-300">Status</label>
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Status</label>
                   <select
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="active">Active</option>
@@ -481,11 +469,11 @@ const BatchPage = () => {
                     <div key={index} className="mb-2">
                       <div className="flex items-center">
                         <div className="w-1/3">
-                          <label className="block text-sm font-medium mb-1 text-gray-300">Product</label>
+                          <label className="block text-sm font-medium mb-1 text-gray-600">Product</label>
                           <select
                             value={product.product_id}
                             onChange={(e) => handleProductChange(index, 'product_id', e.target.value)}
-                            className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                           >
                             <option value="">Select Product</option>
@@ -499,23 +487,23 @@ const BatchPage = () => {
                           </select>
                         </div>
                         <div className="w-1/3">
-                          <label className="block text-sm font-medium mb-1 text-gray-300">Initial Qty</label>
+                          <label className="block text-sm font-medium mb-1 text-gray-600">Initial Qty</label>
                           <input
                             type="number"
                             value={isNaN(product.initial_qty) ? '' : product.initial_qty}
                             onChange={(e) => handleProductChange(index, 'initial_qty', e.target.value)}
-                            className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                             min="0"
                           />
                         </div>
                         <div className="w-1/3">
-                          <label className="block text-sm font-medium mb-1 text-gray-300">Remaining Qty</label>
+                          <label className="block text-sm font-medium mb-1 text-gray-600">Remaining Qty</label>
                           <input
                             type="number"
                             value={isNaN(product.remaining_qty) ? '' : product.remaining_qty}
                             onChange={(e) => handleProductChange(index, 'remaining_qty', e.target.value)}
-                            className="w-full border border-gray-700 rounded px-3 py-2 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                             min="0"
                           />
@@ -549,7 +537,7 @@ const BatchPage = () => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 text-white"
+                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 text-gray-900"
                   >
                     Cancel
                   </button>
@@ -565,6 +553,7 @@ const BatchPage = () => {
             </div>
           </div>
         )}
+      </div>
       </div>
     </>
   );

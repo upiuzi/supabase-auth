@@ -123,14 +123,14 @@ const ReportSales = () => {
   return (
     <>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6 min-h-screen bg-gray-100 text-gray-900">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <h1 className="text-3xl font-bold">Sales Report</h1>
           <div className="flex gap-4">
             <select 
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
             >
               {years.map(year => (
                 <option key={year} value={year}>{year}</option>
@@ -139,7 +139,7 @@ const ReportSales = () => {
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-              className="bg-gray-700 border border-gray-600 rounded px-3 py-2"
+              className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
             >
               <option value="desc">Qty Terbanyak</option>
               <option value="asc">Qty Terendah</option>
@@ -148,13 +148,13 @@ const ReportSales = () => {
         </div>
 
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-600">Loading...</div>
         ) : (
             <div className="space-y-8">
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-gray-800 rounded-lg">
+              <table className="min-w-full bg-white rounded-lg">
                 <thead>
-                  <tr className="text-gray-400 text-left">
+                  <tr className="text-gray-700 text-left">
                     <th className="py-3 px-4">Product</th>
                     {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
                       <th key={month} className="py-3 px-4">{month}</th>
@@ -170,26 +170,26 @@ const ReportSales = () => {
                         : b.grand_total - a.grand_total
                     )
                     .map((product) => (
-                    <tr key={product.product_id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="py-3 px-4">{product.product_name}</td>
+                    <tr key={product.product_id} className="border-t border-gray-200 hover:bg-gray-100">
+                      <td className="py-3 px-4 text-gray-900">{product.product_name}</td>
                       {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
-                        <td key={month} className="py-3 px-4 text-center">
+                        <td key={month} className="py-3 px-4 text-center text-gray-700">
                           Rp {product.monthly_revenue[month]?.toLocaleString('id-ID') || 0}
                         </td>
                       ))}
-                      <td className="py-3 px-4 text-center font-bold">
+                      <td className="py-3 px-4 text-center font-bold text-gray-900">
                         Rp {product.grand_total.toLocaleString('id-ID')}
                       </td>
                     </tr>
                   ))}
-                  <tr className="border-t-2 border-gray-600 font-bold">
-                    <td className="py-3 px-4">Total</td>
+                  <tr className="border-t-2 border-gray-300 font-bold">
+                    <td className="py-3 px-4 text-gray-900">Total</td>
                     {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
-                      <td key={month} className="py-3 px-4 text-center">
+                      <td key={month} className="py-3 px-4 text-center text-gray-900">
                         Rp {getTotalForMonth(month).toLocaleString('id-ID')}
                       </td>
                     ))}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-4 text-center text-gray-900">
                       Rp {getGrandTotal().toLocaleString('id-ID')}
                     </td>
                   </tr>

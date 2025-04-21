@@ -5,6 +5,7 @@ import Navbar2 from '../components/Navbar2';
 import { getWASessions } from '../services/waService';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import OrderQtyChart from '../components/OrderQtyChart';
 
 const CustomerDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ const CustomerDetailPage = () => {
     firstOrderDate: string | null;
     lastOrderDate: string | null;
   }>({ totalQty: 0, totalRevenue: 0, firstOrderDate: null, lastOrderDate: null });
+  const [monthlyQty, setMonthlyQty] = useState<{ month: string; qty: number }[]>([]);
   const [waMessage, setWaMessage] = useState('');
   const [sessions, setSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
@@ -46,6 +48,23 @@ const CustomerDetailPage = () => {
     getOrders().then((allOrders) => {
       const custOrders = allOrders.filter((o: any) => o.customer_id === id);
       setOrders(custOrders);
+      // --- Monthly Qty Calculation ---
+      const qtyByMonth: { [key: string]: number } = {};
+      custOrders.forEach((order: any) => {
+        const date = order.created_at ? new Date(order.created_at) : null;
+        if (!date) return;
+        const ym = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        let orderQty = 0;
+        if (order.order_items) {
+          order.order_items.forEach((item: any) => {
+            orderQty += item.qty || 0;
+          });
+        }
+        qtyByMonth[ym] = (qtyByMonth[ym] || 0) + orderQty;
+      });
+      // Sort by month ascending
+      const months = Object.keys(qtyByMonth).sort();
+      setMonthlyQty(months.map((m) => ({ month: m, qty: qtyByMonth[m] })));
       if (custOrders.length > 0) {
         let totalQty = 0;
         let totalRevenue = 0;
@@ -189,6 +208,9 @@ const CustomerDetailPage = () => {
           {/* Order History Section */}
           <div style={{ background: '#f3f4f6', borderRadius: 8, padding: 20 }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, color: '#222' }}>Riwayat Pesanan</h2>
+            {monthlyQty.length > 0 && (
+              <OrderQtyChart monthlyQty={monthlyQty} />
+            )}
             {orders.length === 0 ? (
               <p style={{ color: '#666' }}>Belum ada pesanan untuk customer ini.</p>
             ) : (

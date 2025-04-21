@@ -127,14 +127,14 @@ const BroadcastPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-gray-100 text-gray-900">
       <Navbar2 />
-      <div className="max-w-2xl mx-auto p-6 mt-10 bg-gray-900 rounded-lg shadow-lg border border-gray-700">
-        <h1 className="text-2xl font-bold mb-4 text-blue-400">Broadcast Pesan</h1>
+      <div className="max-w-2xl mx-auto p-6 mt-10 bg-white rounded-lg shadow-lg border border-gray-200">
+        <h1 className="text-2xl font-bold mb-4 text-blue-700">Broadcast Pesan</h1>
         {/* Pilih tipe pesan */}
         <div className="flex gap-4 mb-4">
           {['text','image','video','document','voice'].map(type => (
-            <label key={type} className={`cursor-pointer px-3 py-1 rounded ${messageType===type ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+            <label key={type} className={`cursor-pointer px-3 py-1 rounded ${messageType===type ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>
               <input
                 type="radio"
                 name="messageType"
@@ -150,9 +150,9 @@ const BroadcastPage: React.FC = () => {
         {/* Input pesan/caption/file */}
         {messageType==='text' && (
           <>
-            <label className="block mb-2 font-semibold text-gray-200">Isi Pesan</label>
+            <label className="block mb-2 font-semibold text-gray-700">Isi Pesan</label>
             <textarea
-              className="w-full border border-gray-700 rounded px-3 py-2 mb-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded px-3 py-2 mb-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={4}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -163,7 +163,7 @@ const BroadcastPage: React.FC = () => {
         )}
         {messageType!=='text' && (
           <>
-            <label className="block mb-2 font-semibold text-gray-200">Pilih File {messageType==='voice'?'Voice Note':messageType.charAt(0).toUpperCase()+messageType.slice(1)}</label>
+            <label className="block mb-2 font-semibold text-gray-700">Pilih File {messageType==='voice'?'Voice Note':messageType.charAt(0).toUpperCase()+messageType.slice(1)}</label>
             <input
               type="file"
               accept={messageType==='image'?"image/*":messageType==='video'?"video/*":messageType==='document'?"application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain":"audio/*"}
@@ -172,14 +172,14 @@ const BroadcastPage: React.FC = () => {
               className="mb-2"
             />
             {mediaFile && (
-              <div className="mb-2 text-sm text-gray-400">File: {mediaFile.name}</div>
+              <div className="mb-2 text-sm text-gray-500">File: {mediaFile.name}</div>
             )}
             {messageType!=='voice' && (
               <>
-                <label className="block mb-2 font-semibold text-gray-200">Caption (opsional)</label>
+                <label className="block mb-2 font-semibold text-gray-700">Caption (opsional)</label>
                 <input
                   type="text"
-                  className="w-full border border-gray-700 rounded px-3 py-2 mb-2 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded px-3 py-2 mb-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={caption}
                   onChange={e=>setCaption(e.target.value)}
                   placeholder="Tulis caption..."
@@ -189,9 +189,9 @@ const BroadcastPage: React.FC = () => {
             )}
           </>
         )}
-        <label className="block mb-2 font-semibold text-gray-200">Pilih Session WhatsApp</label>
+        <label className="block mb-2 font-semibold text-gray-700">Pilih Session WhatsApp</label>
         <select
-          className="w-full mb-4 px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white focus:outline-none"
+          className="w-full mb-4 px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none"
           value={selectedSession}
           onChange={e => setSelectedSession(e.target.value)}
           disabled={sending || sessions.length === 0}
@@ -207,38 +207,33 @@ const BroadcastPage: React.FC = () => {
           )}
         </select>
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2 disabled:bg-blue-400 disabled:cursor-not-allowed"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mr-2 disabled:bg-blue-200 disabled:cursor-not-allowed"
           onClick={handleAskAI}
           disabled={aiLoading || sending}
         >
           {aiLoading ? 'Meminta AI...' : 'Bantu AI'}
         </button>
-        <hr className="my-6 border-gray-700" />
-        <label className="block mb-2 font-semibold text-gray-200">Pilih Customer</label>
+        <hr className="my-6 border-gray-200" />
+        <label className="block mb-2 font-semibold text-gray-700">Pilih Customer</label>
         <input
           type="text"
-          className="w-full mb-2 px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full mb-2 px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Cari nama atau nomor..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           disabled={sending}
         />
-        <pre className="text-xs text-gray-400 bg-gray-900 p-2 rounded mb-2 overflow-x-auto" style={{display:'none'}}>
-          Search: {JSON.stringify(search)}
-          {"\n"}Customers: {JSON.stringify(customers)}
-          {"\n"}Filtered: {JSON.stringify(filteredCustomers)}
-        </pre>
         <div className="flex items-center mb-2">
           <input
             type="checkbox"
-            className="form-checkbox h-5 w-5 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+            className="form-checkbox h-5 w-5 text-blue-500 bg-white border-gray-300 rounded focus:ring-blue-500"
             checked={allFilteredSelected}
             onChange={handleSelectAllFiltered}
             disabled={sending || filteredCustomers.length === 0}
           />
-          <span className="ml-2 text-gray-100 font-semibold">Pilih Semua</span>
+          <span className="ml-2 text-gray-700 font-semibold">Pilih Semua</span>
         </div>
-        <div className="max-h-60 overflow-y-auto border border-gray-700 rounded p-2 mb-4 bg-gray-800">
+        <div className="max-h-60 overflow-y-auto border border-gray-200 rounded p-2 mb-4 bg-gray-50">
           <div className="flex flex-col gap-1">
             {filteredCustomers.length === 0 ? (
               <div className="text-gray-500 text-center py-2">Tidak ada customer ditemukan.</div>
@@ -252,9 +247,9 @@ const BroadcastPage: React.FC = () => {
                       checked={selectedPhones.includes(c.phone)}
                       onChange={() => handleSelectPhone(c.phone)}
                       disabled={sending}
-                      className="form-checkbox h-5 w-5 text-blue-500 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                      className="form-checkbox h-5 w-5 text-blue-500 bg-white border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span className="ml-2 text-gray-100">{c.name || '(Tanpa Nama)'} <span className="text-gray-400">({c.phone || 'No Phone'})</span></span>
+                    <span className="ml-2 text-gray-900">{c.name || '(Tanpa Nama)'} <span className="text-gray-500">({c.phone || 'No Phone'})</span></span>
                   </div>
                 );
               })
@@ -262,24 +257,24 @@ const BroadcastPage: React.FC = () => {
           </div>
         </div>
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-green-400 disabled:cursor-not-allowed"
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-green-200 disabled:cursor-not-allowed"
           onClick={handleBroadcast}
           disabled={sending || (messageType==='text'?(!message):(selectedPhones.length===0 || !mediaFile))}
         >
           {sending ? 'Mengirim...' : 'Kirim Broadcast'}
         </button>
         <div className="mt-8">
-          <h2 className="font-semibold mb-2 text-gray-200">Status Broadcast</h2>
+          <h2 className="font-semibold mb-2 text-gray-700">Status Broadcast</h2>
           <ul>
             {statusList.map((s) => (
               <li key={s.phone} className="mb-1">
-                <span className="font-mono text-gray-400">{s.phone}</span>:
+                <span className="font-mono text-gray-500">{s.phone}</span>:
                 <span className={
                   s.status === 'sent'
-                    ? 'text-green-400'
+                    ? 'text-green-600'
                     : s.status === 'failed'
-                    ? 'text-red-400'
-                    : 'text-yellow-400'
+                    ? 'text-red-600'
+                    : 'text-yellow-600'
                 }> {s.status.toUpperCase()}</span>
                 {s.message && <span className="ml-2 text-gray-500">({s.message})</span>}
               </li>

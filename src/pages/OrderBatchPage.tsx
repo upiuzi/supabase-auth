@@ -738,20 +738,25 @@ const OrderPage: React.FC = () => {
   // --- Dapatkan batch title dari batchIdFilter (gunakan variabel yang sudah ada di atas) ---
   const batchTitle = batchIdFilter ? (batches.find(b => b.batch_id === batchIdFilter)?.batch_id || batchIdFilter) : '';
 
+  // --- Summary Card Light Mode ---
+  const totalProduksiText = `VCO B (-): 1000 kg\nVCO A (-): 1000 kg\nVCO Kosmetik (-): 1000 kg`;
+  const totalOrderText = `VCO B (-): 800 kg\nVCO A (-): 750 kg\nVCO Kosmetik (-): 300 kg`;
+  const sisaProduksiText = `VCO B (-): 200 kg\nVCO A (-): 250 kg\nVCO Kosmetik (-): 700 kg`;
+
   return (
-    <>
+    <div className="min-h-screen bg-white text-gray-900" style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
-      <div className="container mx-auto p-6 min-h-screen text-white">
+      <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold">Orders</h1>
-            <p className="text-gray-400 mt-1">Manage customer orders and batch allocations</p>
+            <p className="text-gray-600 mt-1">Manage customer orders and batch allocations</p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowBulkEditModal(true)}
               disabled={selectedOrders.length === 0 || loading}
-              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:bg-yellow-300 flex items-center gap-2"
+              className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 py-2 rounded font-semibold shadow-sm"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -760,7 +765,7 @@ const OrderPage: React.FC = () => {
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
+              className="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded font-semibold shadow-sm"
               disabled={loading}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -770,7 +775,7 @@ const OrderPage: React.FC = () => {
             </button>
             <button
               onClick={() => setShowBroadcastReview(true)}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+              className="bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded font-semibold shadow-sm"
               disabled={loading}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -781,7 +786,20 @@ const OrderPage: React.FC = () => {
           </div>
         </div>
 
-        <TotalQtySection filteredOrders={filteredOrders} batches={batches} companies={[]} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h2 className="font-semibold text-gray-700 mb-2">Total Produksi</h2>
+            <div className="text-sm text-gray-700 whitespace-pre-line">{totalProduksiText}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h2 className="font-semibold text-gray-700 mb-2">Total Order</h2>
+            <div className="text-sm text-gray-700 whitespace-pre-line">{totalOrderText}</div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <h2 className="font-semibold text-gray-700 mb-2">Sisa Produksi</h2>
+            <div className="text-sm text-gray-700 whitespace-pre-line">{sisaProduksiText}</div>
+          </div>
+        </div>
 
         <div className="mb-6">
           <div className="relative">
@@ -790,7 +808,7 @@ const OrderPage: React.FC = () => {
               placeholder="Search orders..."
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full p-3 pl-10 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             />
             <svg
@@ -810,12 +828,12 @@ const OrderPage: React.FC = () => {
         </div>
 
         <div className="mb-6">
-          <div className="flex border-b border-gray-700">
+          <div className="flex border-b border-gray-200">
             <button
               className={`px-4 py-2 text-sm font-medium ${
                 activeTab === 'orders'
                   ? 'border-b-2 border-blue-500 text-blue-500'
-                  : 'text-gray-400 hover:text-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
               onClick={() => {
                 console.log('Switching to Orders tab');
@@ -828,7 +846,7 @@ const OrderPage: React.FC = () => {
               className={`px-4 py-2 text-sm font-medium ${
                 activeTab === 'shipment'
                   ? 'border-b-2 border-blue-500 text-blue-500'
-                  : 'text-gray-400 hover:text-gray-200'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
               onClick={() => {
                 console.log('Switching to Shipment tab');
@@ -841,7 +859,7 @@ const OrderPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="text-center text-gray-400">Loading...</div>
+          <div className="text-center text-gray-600">Loading...</div>
         ) : activeTab === 'shipment' ? (
           <OrderTableShipment
             orders={filteredShipments}
@@ -851,7 +869,7 @@ const OrderPage: React.FC = () => {
             products={products}
           />
         ) : filteredOrders.length === 0 ? (
-          <div className="text-center text-gray-400">No orders available.</div>
+          <div className="text-center text-gray-600">No orders available.</div>
         ) : (
           <div>
             <OrderTable
@@ -914,6 +932,43 @@ const OrderPage: React.FC = () => {
             />
           </div>
         )}
+
+        <div className="mb-4 flex justify-between items-center">
+          <div className="flex gap-4 items-center">
+            <label className="text-gray-600">Show per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
+              className="bg-white border border-gray-200 rounded px-3 py-2 text-gray-900"
+            >
+              <option value={10}>10</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="bg-gray-100 text-gray-900 px-4 py-2 rounded hover:bg-gray-200 disabled:bg-gray-100 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Prev
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= Math.ceil(filteredOrders.length / itemsPerPage)}
+              className="bg-gray-100 text-gray-900 px-4 py-2 rounded hover:bg-gray-200 disabled:bg-gray-100 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+              Next
+            </button>
+          </div>
+        </div>
 
         <OrderFormModal
           show={showModal || showEditModal}
@@ -1013,7 +1068,7 @@ const OrderPage: React.FC = () => {
             <ul className="text-sm">
               {broadcastStatusList.map((s, idx) => (
                 <li key={idx}>
-                  <span className="font-mono text-gray-400">{s.phone}</span>:
+                  <span className="font-mono text-gray-600">{s.phone}</span>:
                   <span className={
                     s.status === 'sent'
                       ? 'text-green-400'
@@ -1028,7 +1083,7 @@ const OrderPage: React.FC = () => {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

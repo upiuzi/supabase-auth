@@ -31,7 +31,7 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
     const table = document.getElementById('shipment-table');
     if (!table) return;
     const canvas = await html2canvas(table, {
-      backgroundColor: '#222',
+      backgroundColor: '#fff', // light mode
       useCORS: true,
     });
     const link = document.createElement('a');
@@ -41,41 +41,40 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
   };
 
   return (
-    <div className="overflow-x-auto" style={{ background: '#222', color: '#fff', minHeight: '100vh' }}>
+    <div className="overflow-x-auto bg-white text-gray-900 min-h-screen">
       <div className="flex justify-end mb-2">
         <button
           onClick={handleDownloadPng}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-semibold shadow"
         >
           Download PNG
         </button>
       </div>
       <table
         id="shipment-table"
-        style={{ background: '#222', color: '#fff', borderColor: '#444' }}
-        className="min-w-full text-sm text-left"
+        className="min-w-full text-sm text-left bg-white border border-gray-200"
       >
-        <thead style={{ background: '#222', color: '#fff' }}>
+        <thead className="bg-gray-100 text-gray-700 border-b border-gray-200">
           <tr>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Invoice ID</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Customer</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Batch</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Shipment</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Customer Phone</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Customer Address</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Products (Qty Jerigen)</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Description</th>
-            <th style={{ color: '#fff', background: '#222' }} className="px-4 py-2">Status</th>
+            <th className="px-4 py-2">Invoice ID</th>
+            <th className="px-4 py-2">Customer</th>
+            <th className="px-4 py-2">Batch</th>
+            <th className="px-4 py-2">Shipment</th>
+            <th className="px-4 py-2">Customer Phone</th>
+            <th className="px-4 py-2">Customer Address</th>
+            <th className="px-4 py-2">Products (Qty Jerigen)</th>
+            <th className="px-4 py-2">Description</th>
+            <th className="px-4 py-2">Status</th>
           </tr>
         </thead>
-        <tbody style={{ color: '#fff' }}>
+        <tbody className="text-gray-900">
           {loading ? (
-            <tr><td colSpan={9} className="text-center py-4">Loading...</td></tr>
+            <tr><td colSpan={9} className="text-center py-4 text-gray-600">Loading...</td></tr>
           ) : orders.length === 0 ? (
-            <tr><td colSpan={9} className="text-center py-4">No orders available.</td></tr>
+            <tr><td colSpan={9} className="text-center py-4 text-gray-600">No orders available.</td></tr>
           ) : (
             orders.map(order => (
-              <tr key={order.id} style={{ color: '#fff', background: '#222', borderBottom: '1px solid #444' }}>
+              <tr key={order.id} className="bg-white border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">{getInvoiceId(order)}</td>
                 <td className="px-4 py-2">{getCustomerName(order.customer_id)}</td>
                 <td className="px-4 py-2">{getBatchId(order.batch_id)}</td>
@@ -85,7 +84,7 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
                 <td className="px-4 py-2">{getProductList(order)}</td>
                 <td className="px-4 py-2">{order.description || '-'}</td>
                 <td className="px-4 py-2">
-                  <span style={{ color: '#fff', background: order.status === 'pending' ? '#b45309' : order.status === 'confirmed' ? '#166534' : '#991b1b', padding: '2px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12, display: 'inline-block' }}>{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                  <span className={`px-3 py-1 rounded font-semibold text-xs ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : order.status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
                 </td>
               </tr>
             ))

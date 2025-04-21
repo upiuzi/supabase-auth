@@ -2,6 +2,7 @@ import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react
 import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import supabase from "../supabase";
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 const navigation = [
   { name: 'Dashboard', link: '/', current: false },
@@ -55,6 +56,35 @@ function classNames(...classes: string[]) {
 }
 
 export default function Navbar2() {
+  // Theme state
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+    }
+    return 'dark';
+  });
+
+  // User email state
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // Fetch user email from Supabase session
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data?.user?.email) setUserEmail(data.user.email);
+    };
+    fetchUser();
+  }, []);
+
   return (
     <Disclosure as="nav" className="bg-gray-900">
       <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
@@ -178,7 +208,7 @@ export default function Navbar2() {
 
           {/* Right section: User email and logout */}
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
-            <span className="text-gray-300 mr-4">admin@email.com</span>
+            <span className="text-gray-300 mr-4">{userEmail || '...'}</span>
             <button
               onClick={() => supabase.auth.signOut()}
               className="text-gray-300 hover:text-white flex items-center"
@@ -188,33 +218,19 @@ export default function Navbar2() {
               </svg>
               Logout
             </button>
-            {/* Tools Dropdown/Menu */}
-            <div className="relative group">
-              <button className="px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded inline-flex items-center">
-                <span>Tools</span>
-                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              <div className="absolute hidden group-hover:block bg-gray-900 border border-gray-700 rounded shadow-lg mt-2 min-w-[180px] z-50">
-                <a
-                  href="/ai-assistant"
-                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
-                >
-                  AI Assistant
-                </a>
-                <a
-                  href="/whatsapp-setting"
-                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
-                >
-                  Setting WhatsApp
-                </a>
-                <a
-                  href="/history-customer"
-                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
-                >
-                  History Customer
-                </a>
-              </div>
-            </div>
+            {/* Theme Switcher */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`ml-4 px-3 py-2 rounded font-semibold border border-gray-600 flex items-center gap-2 ${theme === 'dark' ? 'bg-gray-800 text-yellow-300' : 'bg-yellow-200 text-gray-800'}`}
+              title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            >
+              {theme === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707-1.414-1.414" /></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              )}
+              {theme === 'dark' ? 'Dark' : 'Light'}
+            </button>
           </div>
         </div>
       </div>

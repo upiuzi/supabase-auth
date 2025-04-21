@@ -63,7 +63,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       try {
         const tableClone = tableRef.current.cloneNode(true) as HTMLElement;
         tableClone.style.backgroundColor = '#1F2937';
-        tableClone.style.color = '#FFFFFF';
+        tableClone.style.color = '#GGGGGG';
         const tableElement = tableClone.querySelector('table') as HTMLElement;
         if (tableElement) {
           tableElement.style.backgroundColor = '#1F2937';
@@ -302,99 +302,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   return (
     <>
-      <style>
-        {`
-          .export-compatible {
-            background-color: #1F2937;
-            color: #FFFFFF;
-          }
-          .export-compatible table {
-            background-color: #1F2937;
-          }
-          .export-compatible th {
-            background-color: #1F2937;
-            color: #9CA3AF;
-          }
-          .export-compatible td {
-            color: #FFFFFF;
-          }
-          .export-compatible select {
-            color: #FFFFFF;
-          }
-          .export-compatible .bg-gray-700 {
-            background-color: #374151;
-          }
-          .export-compatible .text-gray-300 {
-            color: #D1D5DB;
-          }
-          .export-compatible .text-gray-400 {
-            color: #9CA3AF;
-          }
-          .export-compatible .bg-blue-500 {
-            background-color: #3B82F6;
-          }
-          .export-compatible .bg-green-500 {
-            background-color: #10B981;
-          }
-          .export-compatible .bg-yellow-900 {
-            background-color: #4A2F00;
-          }
-          .export-compatible .text-yellow-200 {
-            color: #FFD700;
-          }
-          .export-compatible .bg-blue-900 {
-            background-color: #003087;
-          }
-          .export-compatible .text-blue-200 {
-            color: #87CEEB;
-          }
-          .export-compatible .bg-red-900 {
-            background-color: #8B0000;
-          }
-          .export-compatible .text-red-200 {
-            color: #FFB6C1;
-          }
-          .export-compatible .border-gray-700 {
-            border-color: #374151;
-          }
-          .export-compatible .hover\\:bg-gray-600:hover {
-            background-color: #4B5563;
-          }
-          .export-compatible .hover\\:text-green-400:hover {
-            color: #34D399;
-          }
-          .export-compatible .hover\\:text-blue-400:hover {
-            color: #60A5FA;
-          }
-          .export-compatible .hover\\:text-yellow-400:hover {
-            color: #FBBF24;
-          }
-          .export-compatible .hover\\:text-red-400:hover {
-            color: #F87171;
-          }
-          .export-compatible .bg-gray-800 {
-            background-color: #1F2937;
-          }
-          .export-compatible .disabled\\:bg-gray-800:disabled {
-            background-color: #1F2937;
-          }
-          .export-compatible .disabled\\:text-gray-500:disabled {
-            color: #6B7280;
-          }
-          .export-compatible .disabled\\:bg-green-300:disabled {
-            background-color: #6EE7B7;
-          }
-          .export-compatible .border-gray-600 {
-            border-color: #4B5563;
-          }
-          .export-compatible .text-blue-500 {
-            color: #3B82F6;
-          }
-          .export-compatible .focus\\:ring-blue-500:focus {
-            --tw-ring-color: #3B82F6;
-          }
-        `}
-      </style>
+      
       <div className="mb-4 flex justify-between items-center">
         <div className="flex gap-4 items-center">
           <label className="text-gray-300">Show per page:</label>
@@ -452,85 +360,90 @@ const OrderTable: React.FC<OrderTableProps> = ({
       )}
 
       <div className="overflow-x-auto export-compatible" ref={tableRef}>
-        <table className="min-w-full bg-gray-800 rounded-lg border-separate border-spacing-0">
+        <table className="min-w-full bg-white rounded-lg border-separate border-spacing-0 border border-gray-200">
           <thead>
-            <tr className="text-gray-400 text-left border-b border-gray-600">
-              <th className="py-3 px-4 w-16"></th>
-              <th className="py-3 px-4">Invoice No</th>
-              <th className="py-3 px-4">Customer</th>
-              {/* <th className="py-3 px-4">Batch</th> */}
-              <th className="py-3 px-4">Product</th>
-              <th className="py-3 px-4 text-right">Qty (kg)</th>
-              <th className="py-3 px-4 text-right">Price</th>
-              <th className="py-3 px-4 text-right">Amount</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Actions</th>
+            <tr className="text-gray-700 text-left border-b border-gray-200 bg-gray-50">
+              <th className="py-3 px-4 w-16 font-semibold text-gray-700"> </th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Invoice No</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Customer</th>
+              {/* <th className="py-3 px-4 font-semibold text-gray-700">Batch</th> */}
+              <th className="py-3 px-4 font-semibold text-gray-700">Product</th>
+              <th className="py-3 px-4 text-right font-semibold text-gray-700">Qty (kg)</th>
+              <th className="py-3 px-4 text-right font-semibold text-gray-700">Price</th>
+              <th className="py-3 px-4 text-right font-semibold text-gray-700">Amount</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Status</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {currentItems.map((order, index) => {
-              const orderItems = order.order_items || [];
-              const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
-              const totalAmount = getTotalAmount(order);
-              return orderItems.length === 0 ? (
-                <tr key={order.id} className="border-b border-gray-700">
-                  <td className="py-4 px-4" rowSpan={1}>
-                    <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
-                  </td>
-                  <td className="py-4 px-4 text-white" rowSpan={1}>{getInvoiceNo(order)}</td>
-                  <td className="py-4 px-4 text-white" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
-                  {/* <td className="py-4 px-4 text-white" rowSpan={1}>{getBatchId(order.batch_id)}</td> */}
-                  <td className="py-4 px-4 text-white">-</td>
-                  <td className="py-4 px-4 text-right">-</td>
-                  <td className="py-4 px-4 text-right">-</td>
-                  <td className="py-4 px-4 text-right">Rp {totalAmount.toLocaleString('id-ID')}</td>
-                  <td className="py-4 px-4">{order.status}</td>
-                  <td className="py-4 px-4"></td>
-                </tr>
-              ) : (
-                orderItems.map((item, idx) => (
-                  <tr key={order.id + '-' + idx} className={idx === orderItems.length - 1 ? 'border-b border-gray-700' : ''}>
-                    {idx === 0 && (
-                      <>
-                        <td className="py-4 px-4" rowSpan={rowSpan}>
-                          <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
-                        </td>
-                        <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
-                        <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
-                        {/* <td className="py-4 px-4 text-white" rowSpan={rowSpan}>{getBatchId(order.batch_id)}</td> */}
-                      </>
-                    )}
-                    <td className="py-4 px-4 text-white align-top">{getProductName(item.product_id, order.batch_id)}</td>
-                    <td className="py-4 px-4 text-right align-top">{item.qty}</td>
-                    <td className="py-4 px-4 text-right align-top">Rp {item.price.toLocaleString('id-ID')}</td>
-                    <td className="py-4 px-4 text-right align-top">Rp {(item.qty * item.price).toLocaleString('id-ID')}</td>
-                    {idx === 0 && (
-                      <>
-                        <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
-                        <td className="py-4 px-4" rowSpan={rowSpan}>
-                          {/* ...actions... */}
-                          <div className="group inline-block">
-                            <button className="text-gray-400 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                              </svg>
-                            </button>
-                            <div className="absolute right-0 z-10 hidden group-hover:block bg-gray-800 border border-gray-700 rounded shadow-lg min-w-[120px]">
-                              <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-blue-400">View Details</button>
-                              <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-green-400">Edit</button>
-                              <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-600">Delete</button>
-                              <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-700 hover:text-yellow-600">Edit Shipment</button>
-                            </div>
-                          </div>
-                        </td>
-                      </>
-                    )}
+            {currentItems.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center py-10 text-gray-400 bg-white">No orders found.</td>
+              </tr>
+            ) : (
+              currentItems.map((order, index) => {
+                const orderItems = order.order_items || [];
+                const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
+                const totalAmount = getTotalAmount(order);
+                return orderItems.length === 0 ? (
+                  <tr key={order.id} className="border-b border-gray-100 bg-white">
+                    <td className="py-4 px-4" rowSpan={1}>
+                      <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
+                    </td>
+                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getInvoiceNo(order)}</td>
+                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
+                    {/* <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getBatchId(order.batch_id)}</td> */}
+                    <td className="py-4 px-4 text-gray-900">-</td>
+                    <td className="py-4 px-4 text-right">-</td>
+                    <td className="py-4 px-4 text-right">-</td>
+                    <td className="py-4 px-4 text-right">Rp {totalAmount.toLocaleString('id-ID')}</td>
+                    <td className="py-4 px-4">{order.status}</td>
+                    <td className="py-4 px-4"></td>
                   </tr>
-                ))
-              );
-            })}
-            {/* Total row */}
-            <tr className="border-t border-gray-600 font-bold">
+                ) : (
+                  orderItems.map((item, idx) => (
+                    <tr key={order.id + '-' + idx} className={idx === orderItems.length - 1 ? 'border-b border-gray-100 bg-white' : 'bg-white'}>
+                      {idx === 0 && (
+                        <>
+                          <td className="py-4 px-4" rowSpan={rowSpan}>
+                            <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
+                          </td>
+                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
+                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
+                          {/* <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getBatchId(order.batch_id)}</td> */}
+                        </>
+                      )}
+                      <td className="py-4 px-4 text-gray-900 align-top">{getProductName(item.product_id, order.batch_id)}</td>
+                      <td className="py-4 px-4 text-right align-top">{item.qty}</td>
+                      <td className="py-4 px-4 text-right align-top">Rp {item.price.toLocaleString('id-ID')}</td>
+                      <td className="py-4 px-4 text-right align-top">Rp {(item.qty * item.price).toLocaleString('id-ID')}</td>
+                      {idx === 0 && (
+                        <>
+                          <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
+                          <td className="py-4 px-4" rowSpan={rowSpan}>
+                            {/* ...actions... */}
+                            <div className="group inline-block">
+                              <button className="text-gray-700 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
+                              </button>
+                              <div className="absolute right-0 z-10 hidden group-hover:block bg-white border border-gray-200 rounded shadow-lg min-w-[120px]">
+                                <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 hover:text-blue-400">View Details</button>
+                                <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 hover:text-green-400">Edit</button>
+                                <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-100 hover:text-red-600">Delete</button>
+                                <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-100 hover:text-yellow-600">Edit Shipment</button>
+                              </div>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))
+                );
+              })
+            )}
+            <tr className="border-t border-gray-200 font-bold bg-gray-50">
               <td colSpan={4} className="py-4 px-4 text-right">Total</td>
               <td colSpan={2} className="py-4 px-4 text-right">Rp</td>
               <td className="py-4 px-4 text-right">{getOverallTotalAmount().toLocaleString('id-ID')}</td>
@@ -550,14 +463,14 @@ const OrderTable: React.FC<OrderTableProps> = ({
             <button
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1 || loading}
-              className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 font-medium"
             >
               First
             </button>
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1 || loading}
-              className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 font-medium"
             >
               Previous
             </button>
@@ -566,12 +479,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 key={index}
                 onClick={() => typeof page === 'number' && onPageChange(page)}
                 disabled={typeof page !== 'number' || loading}
-                className={`px-4 py-2 rounded ${
+                className={`px-4 py-2 rounded font-medium ${
                   page === currentPage
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-blue-500 text-white border border-blue-500'
                     : typeof page === 'number'
-                    ? 'bg-gray-700 text-white hover:bg-gray-600'
-                    : 'bg-gray-700 text-gray-400 cursor-default'
+                    ? 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'
+                    : 'bg-white border border-gray-100 text-gray-400 cursor-default'
                 }`}
               >
                 {page}
@@ -580,14 +493,14 @@ const OrderTable: React.FC<OrderTableProps> = ({
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages || loading}
-              className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 font-medium"
             >
               Next
             </button>
             <button
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages || loading}
-              className="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 font-medium"
             >
               Last
             </button>
