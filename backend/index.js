@@ -427,5 +427,6 @@ app.post('/api/bclogs', async (req, res) => {
   if (error) {
     return res.status(500).json({ error: 'Failed to insert log', details: error.message });
   }
+  console.log('bc berhasil di simpan di bclogs upiiiii'); // Tambah log sukses
   res.json({ success: true, data });
 });
