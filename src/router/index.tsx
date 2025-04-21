@@ -25,6 +25,7 @@ import BankAccountPage from "../pages/BankAccountPage.tsx";
 import PaymentLogPage from "../pages/PaymentLogPage.tsx";
 import BroadcastPage from "../pages/BroadcastPage.tsx";
 import WhatsappSettingPage from "../pages/WhatsappSettingPage.tsx";
+import HistoryCustomerPage from "../pages/HistoryCustomerPage";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -129,6 +130,10 @@ const router = createBrowserRouter([
           {
             path: "/whatsapp-setting",
             element: <WhatsappSettingPage />,
+          },
+          {
+            path: "/history-customer",
+            element: <HistoryCustomerPage />,
           },
         ],
       },

@@ -21,6 +21,7 @@ import BulkEditModal from '../components/orders/BulkEditModal';
 import ShipmentEditModal from '../components/orders/ShipmentEditModal';
 import TotalQtySection from '../components/orders/TotalQtySection';
 import BroadcastConfirmModal from '../components/orders/BroadcastConfirmModal';
+import BroadcastReviewModal from '../components/orders/BroadcastReviewModal';
 import { sendOrderConfirmBroadcast } from '../services/waService';
 import { Order, Customer, Batch, OrderItem, Company, BankAccount } from '../type/schema';
 
@@ -78,8 +79,10 @@ const OrderPage: React.FC = () => {
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [broadcastStatusList, setBroadcastStatusList] = useState<{ phone: string; status: 'pending' | 'sending' | 'sent' | 'failed'; message: string }[]>([]);
-  const [broadcastBatchData, setBroadcastBatchData] = useState<{ name: string; phone: string; product: string; qty: number }[]>([]);
+  const [broadcastBatchData, setBroadcastBatchData] = useState<{ name: string; phone: string; product: string; qty: number; customer_id: string }[]>([]);
   const [batchIdFilter, setBatchIdFilter] = useState<string | null>(null);
+  const [showBroadcastReview, setShowBroadcastReview] = useState(false);
+  const [broadcastReviewLoading, setBroadcastReviewLoading] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     customer_id: '',
@@ -114,16 +117,21 @@ const OrderPage: React.FC = () => {
   }, [showBroadcastConfirm]);
 
   useEffect(() => {
-    const batchId = searchParams.get('batch_id');
-    setBatchIdFilter(batchId);
-    if (batchId) {
-      fetch(`/api/databroadcastbatch/${batchId}`)
-        .then(res => res.json())
-        .then(data => setBroadcastBatchData(data || []));
-    } else {
-      setBroadcastBatchData([]);
-    }
-  }, [searchParams]);
+    if (showBroadcastReview) fetchBroadcastBatchData();
+  }, [showBroadcastReview]);
+
+  // useEffect berikut DIHAPUS agar tidak overwrite broadcastBatchData secara otomatis
+  // useEffect(() => {
+  //   const batchId = searchParams.get('batch_id');
+  //   setBatchIdFilter(batchId);
+  //   if (batchId) {
+  //     fetch(`/api/databroadcastbatch/${batchId}`)
+  //       .then(res => res.json())
+  //       .then(data => setBroadcastBatchData(data || []));
+  //   } else {
+  //     setBroadcastBatchData([]);
+  //   }
+  // }, [searchParams]);
 
   // Tambahkan fungsi untuk mengambil companies
   const fetchCompanies = async () => {
@@ -149,8 +157,8 @@ const OrderPage: React.FC = () => {
   const fetchBroadcastBatchData = async () => {
     setBroadcastLoading(true);
     try {
-      // Gunakan batchIdFilterFromUrl jika ada, atau batchIdFilter state
       const batch_id = batchIdFilterFromUrl || batchIdFilter;
+      console.log('DEBUG batch_id dipakai untuk fetch:', batch_id); // LOG DEBUG
       if (!batch_id) {
         alert('Batch belum dipilih!');
         setBroadcastLoading(false);
@@ -158,8 +166,18 @@ const OrderPage: React.FC = () => {
       }
       const res = await fetch(`http://localhost:3331/api/databroadcastbatch/${batch_id}`);
       const data = await res.json();
-      setBroadcastBatchData(data);
-      setShowBroadcastConfirm(true);
+      console.log('DEBUG DATA BROADCAST API:', data); // LOG DEBUG
+      let parsedData = data;
+      if (typeof data === 'string') {
+        try {
+          parsedData = JSON.parse(data);
+          console.log('DEBUG Data parsed:', parsedData);
+        } catch (e) {
+          console.error('ERROR parsing broadcast data:', e);
+        }
+      }
+      setBroadcastBatchData(parsedData);
+      setShowBroadcastReview(true); // buka modal review
     } catch (err) {
       alert('Gagal mengambil data broadcast batch');
     } finally {
@@ -194,6 +212,7 @@ const OrderPage: React.FC = () => {
       const data = await getBatches();
       setBatches(data);
     } catch (error) {
+
       console.error('Error fetching batches:', error);
     }
   };
@@ -586,7 +605,21 @@ const OrderPage: React.FC = () => {
     } catch (e) {}
   };
 
-  // --- TAMBAHKAN VALIDASI DI HANDLE BROADCAST BATCH ---
+  // --- Tambahkan fungsi untuk mencatat log broadcast ke backend ---
+  const logBroadcast = async (customer_id: string, message: string, session: string) => {
+    try {
+      await fetch('http://localhost:3331/api/bclogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id, message, session }),
+      });
+    } catch (err) {
+      // Logging error bisa diabaikan jika hanya untuk audit
+      console.error('Gagal mencatat log broadcast:', err);
+    }
+  };
+
+  // --- Modifikasi handleBroadcastBatch agar mencatat log setiap kali kirim WA ---
   const handleBroadcastBatch = async (arrivalDate: string, session: string) => {
     if (!broadcastBatchData.length) {
       alert('Data broadcast kosong!');
@@ -606,6 +639,10 @@ const OrderPage: React.FC = () => {
           message,
           session,
         });
+        // --- Catat log broadcast ---
+        if (d.customer_id) {
+          await logBroadcast(d.customer_id, message, session);
+        }
         setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sent', message: 'Terkirim' } : s));
       } catch (e: any) {
         setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'failed', message: e?.message || 'Gagal' } : s));
@@ -613,6 +650,13 @@ const OrderPage: React.FC = () => {
     }
     setBroadcastLoading(false);
   };
+
+  const handleConfirmBroadcastReview = () => {
+    setShowBroadcastReview(false);
+    setShowBroadcastConfirm(true); // buka modal WA confirm (input tanggal, session, dst)
+  };
+
+  console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
 
   return (
     <>
@@ -645,14 +689,14 @@ const OrderPage: React.FC = () => {
               Create Order
             </button>
             <button
-              onClick={fetchBroadcastBatchData}
+              onClick={() => setShowBroadcastReview(true)}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
               disabled={loading}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              Broadcast Confirm
+              Broadcast Review
             </button>
           </div>
         </div>
@@ -865,6 +909,13 @@ const OrderPage: React.FC = () => {
           onSend={handleBroadcastBatch}
           sessions={waSessions}
           loading={broadcastLoading}
+        />
+        <BroadcastReviewModal
+          show={showBroadcastReview}
+          onClose={() => setShowBroadcastReview(false)}
+          onConfirm={handleConfirmBroadcastReview}
+          data={broadcastBatchData}
+          loading={broadcastReviewLoading}
         />
         {broadcastStatusList.length > 0 && (
           <div className="mt-4">

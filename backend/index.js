@@ -414,3 +414,18 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
   }
 });
 // --- END MULTI SESSION SUPPORT ---
+
+// Endpoint untuk mencatat log broadcast WA
+app.post('/api/bclogs', async (req, res) => {
+  const { customer_id, message, session } = req.body;
+  if (!customer_id || !message || !session) {
+    return res.status(400).json({ error: 'customer_id, message, and session are required' });
+  }
+  const { data, error } = await supabase
+    .from('bclogs')
+    .insert([{ customer_id, message, session }]);
+  if (error) {
+    return res.status(500).json({ error: 'Failed to insert log', details: error.message });
+  }
+  res.json({ success: true, data });
+});

@@ -38,6 +38,7 @@ const navigation = [
     submenu: [
       { name: 'AI Assistant', link: '/ai-assistant' },
       { name: 'Setting WhatsApp', link: '/whatsapp-setting' },
+      { name: 'History Customer', link: '/history-customer' },
     ],
   },
 ];
@@ -198,6 +199,12 @@ export default function Navbar2() {
                   className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
                 >
                   Setting WhatsApp
+                </a>
+                <a
+                  href="/history-customer"
+                  className="block px-4 py-2 text-gray-300 hover:bg-blue-600 hover:text-white rounded"
+                >
+                  History Customer
                 </a>
               </div>
             </div>
