@@ -559,3 +559,16 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
   }
 });
 // --- END MULTI SESSION SUPPORT ---
+
+// Endpoint: Ambil data customer (id, name, city)
+app.get('/api/customers', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('id, name, city');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message || err });
+  }
+});

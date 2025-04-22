@@ -27,6 +27,7 @@ import BroadcastPage from "../pages/BroadcastPage.tsx";
 import WhatsappSettingPage from "../pages/WhatsappSettingPage.tsx";
 import HistoryCustomerPage from "../pages/HistoryCustomerPage.tsx";
 import CustomerDetailPage from "../pages/CustomerDetailPage.tsx";
+import CustomerMapPage from "../pages/CustomerMapPage.tsx";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -83,6 +84,10 @@ const router = createBrowserRouter([
           {
             path: "/customers/:id",
             element: <CustomerDetailPage />,
+          },
+          {
+            path: "/customer-map",
+            element: <CustomerMapPage />,
           },
           {
             path: "/product",
