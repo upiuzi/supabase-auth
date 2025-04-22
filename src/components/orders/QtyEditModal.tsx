@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Order, Batch } from '../../type/schema';
 
@@ -51,8 +50,6 @@ const QtyEditModal: React.FC<QtyEditModalProps> = ({
 
   if (!show || !orderId || !productId) return null;
 
-  const batchId = orders.find((o) => o.id === orderId)?.batch_id || '';
-
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white">
@@ -69,7 +66,7 @@ const QtyEditModal: React.FC<QtyEditModalProps> = ({
           <input
             id="product"
             type="text"
-            value={getProductName(productId, batchId)}
+            value={getProductName(productId, orders.find((o) => o.id === orderId)?.batch_id || '')}
             className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none"
             disabled
             aria-disabled="true"

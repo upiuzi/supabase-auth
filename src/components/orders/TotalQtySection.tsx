@@ -25,89 +25,136 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
     return company ? company.company_name : '-';
   };
 
-  const getInitialQty = (productId: string, batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    if (batch && batch.batch_products) {
-      const batchProduct = batch.batch_products.find((bp) => bp.product_id === productId);
-      return batchProduct ? batchProduct.initial_qty : 0;
+  // --- 1. TOTAL PRODUKSI ---
+  // Hanya hitung batch yang sedang difilter, jika batchIdFilter ada
+  let filteredBatches = batches;
+  // Cari batchIdFilter dari URL jika ada
+  let batchIdFilter = null;
+  if (typeof window !== 'undefined') {
+    const url = new URL(window.location.href);
+    batchIdFilter = url.searchParams.get('batch_id');
+    if (batchIdFilter) {
+      filteredBatches = batches.filter(b => b.id === batchIdFilter);
     }
-    return 0;
+  }
+  // Key: `${batchId}-${productId}`
+  const totalProduksi: Record<string, { productId: string; batchId: string; productName: string; companyId: string; initialQty: number }> = {};
+  filteredBatches.forEach((batch) => {
+    if (batch.batch_products) {
+      batch.batch_products.forEach((bp) => {
+        const key = `${batch.id}-${bp.product_id}`;
+        totalProduksi[key] = {
+          productId: bp.product_id,
+          batchId: batch.id,
+          productName: bp.product?.name || 'Unknown Product',
+          companyId: batch.company_id || '',
+          initialQty: bp.initial_qty || 0,
+        };
+      });
+    }
+  });
+
+  // --- 2. TOTAL ORDER ---
+  // Key: `${batchId}-${productId}`
+  const totalOrder: Record<string, number> = {};
+  filteredOrders.forEach((order) => {
+    if (order.order_items) {
+      order.order_items.forEach((item) => {
+        // Hanya hitung order yang batch_id-nya sesuai batch filter (atau semua jika tidak ada filter)
+        if (!batchIdFilter || order.batch_id === batchIdFilter) {
+          const key = `${order.batch_id}-${item.product_id}`;
+          if (!totalOrder[key]) totalOrder[key] = 0;
+          totalOrder[key] += item.qty;
+        }
+      });
+    }
+  });
+
+  // --- AGGREGATE BY PRODUCT NAME ---
+  // 1. Total Produksi
+  const totalProduksiByProduct: Record<string, number> = {};
+  Object.values(totalProduksi).forEach((data) => {
+    if (!totalProduksiByProduct[data.productName]) totalProduksiByProduct[data.productName] = 0;
+    totalProduksiByProduct[data.productName] += data.initialQty;
+  });
+
+  // 2. Total Order
+  const totalOrderByProduct: Record<string, number> = {};
+  Object.entries(totalProduksi).forEach(([key, data]) => {
+    const qty = totalOrder[key] || 0;
+    if (!totalOrderByProduct[data.productName]) totalOrderByProduct[data.productName] = 0;
+    totalOrderByProduct[data.productName] += qty;
+  });
+
+  // 3. Sisa Produksi
+  const sisaProduksiByProduct: Record<string, number> = {};
+  Object.keys(totalProduksiByProduct).forEach((productName) => {
+    const produksi = totalProduksiByProduct[productName] || 0;
+    const order = totalOrderByProduct[productName] || 0;
+    sisaProduksiByProduct[productName] = produksi - order;
+  });
+
+  // Helper untuk format jerigen
+  const formatWithJerigen = (qty: number) => {
+    const jerigen = Math.floor(qty / 19);
+    return `${qty} kg / ${jerigen} jerigen`;
   };
 
-  const getTotalQtyPerProduct = () => {
-    const totalQtyByProduct: Record<
-      string,
-      { orderedQty: number; initialQty: number; batchId: string; companyId: string }
-    > = {};
-
-    filteredOrders.forEach((order) => {
-      if (order.order_items) {
-        order.order_items.forEach((item) => {
-          const productName = getProductName(item.product_id, order.batch_id);
-          const initialQty = getInitialQty(item.product_id, order.batch_id);
-
-          if (!totalQtyByProduct[productName]) {
-            totalQtyByProduct[productName] = {
-              orderedQty: 0,
-              initialQty: initialQty,
-              batchId: order.batch_id,
-              companyId: order.company_id,
-            };
-          }
-          totalQtyByProduct[productName].orderedQty += item.qty;
-        });
-      }
-    });
-
-    return totalQtyByProduct;
-  };
-
-  const totalQtyByProduct = getTotalQtyPerProduct();
+  // --- FIX: Untuk Total Produksi, tampilkan hasil agregasi by product saja (bukan urutan batch) ---
+  // Urutkan agar VCO A selalu di atas, lalu VCO B, lalu produk lain (jika ada)
+  let productNames = Object.keys(totalProduksiByProduct);
+  productNames = productNames.sort((a, b) => {
+    if (a === 'VCO A') return -1;
+    if (b === 'VCO A') return 1;
+    if (a === 'VCO B') return -1;
+    if (b === 'VCO B') return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* TOTAL PRODUKSI */}
       <div className="bg-gray-800 p-4 rounded-lg">
         <h2 className="text-lg font-bold text-white mb-2">Total Produksi</h2>
-        {Object.keys(totalQtyByProduct).length === 0 ? (
-          <p className="text-gray-400">No products ordered yet.</p>
+        {productNames.length === 0 ? (
+          <p className="text-gray-400">No batch data.</p>
         ) : (
           <ul className="space-y-2" role="list" aria-label="Total production quantities">
-            {Object.entries(totalQtyByProduct).map(([productName, data]) => (
+            {productNames.map((productName) => (
               <li key={productName} className="text-gray-200">
-                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
-                {data.initialQty} kg
+                <span className="font-medium">{productName}</span>: {formatWithJerigen(totalProduksiByProduct[productName] || 0)}
               </li>
             ))}
           </ul>
         )}
       </div>
 
+      {/* TOTAL ORDER */}
       <div className="bg-gray-800 p-4 rounded-lg">
         <h2 className="text-lg font-bold text-white mb-2">Total Order</h2>
-        {Object.keys(totalQtyByProduct).length === 0 ? (
-          <p className="text-gray-400">No products ordered yet.</p>
+        {productNames.length === 0 ? (
+          <p className="text-gray-400">No batch data.</p>
         ) : (
           <ul className="space-y-2" role="list" aria-label="Total ordered quantities">
-            {Object.entries(totalQtyByProduct).map(([productName, data]) => (
+            {productNames.map((productName) => (
               <li key={productName} className="text-gray-200">
-                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
-                {data.orderedQty} kg
+                <span className="font-medium">{productName}</span>: {formatWithJerigen(totalOrderByProduct[productName] || 0)}
               </li>
             ))}
           </ul>
         )}
       </div>
 
+      {/* SISA PRODUKSI */}
       <div className="bg-gray-800 p-4 rounded-lg">
         <h2 className="text-lg font-bold text-white mb-2">Sisa Produksi</h2>
-        {Object.keys(totalQtyByProduct).length === 0 ? (
-          <p className="text-gray-400">No products ordered yet.</p>
+        {productNames.length === 0 ? (
+          <p className="text-gray-400">No batch data.</p>
         ) : (
           <ul className="space-y-2" role="list" aria-label="Remaining production quantities">
-            {Object.entries(totalQtyByProduct).map(([productName, data]) => (
+            {productNames.map((productName) => (
               <li key={productName} className="text-gray-200">
-                <span className="font-medium">{productName}</span> ({getCompanyName(data.companyId)}):{' '}
-                {data.initialQty - data.orderedQty} kg
+                <span className="font-medium">{productName}</span>: {formatWithJerigen(sisaProduksiByProduct[productName] || 0)}
               </li>
             ))}
           </ul>

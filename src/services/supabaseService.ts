@@ -609,9 +609,9 @@ export const deleteBatch = async (id: string): Promise<void> => {
 };
 
 // Order functions
-export const getOrders = async (): Promise<Order[]> => {
+export const getOrders = async (batchId?: string): Promise<Order[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select(`
         *,
@@ -622,7 +622,10 @@ export const getOrders = async (): Promise<Order[]> => {
         payment_logs(*)
       `)
       .order('created_at', { ascending: false });
-    
+    if (batchId) {
+      query = query.eq('batch_id', batchId);
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   } catch (error) {

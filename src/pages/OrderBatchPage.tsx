@@ -222,7 +222,9 @@ const OrderPage: React.FC = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await getOrders();
+      // Ambil batchId dari URL jika ada
+      const batchId = batchIdFilterFromUrl;
+      const data = await getOrders(batchId || undefined);
       setOrders(data);
       applyFilters(data);
     } catch (error) {
@@ -407,33 +409,33 @@ const OrderPage: React.FC = () => {
       if (invalidItem)
         throw new Error('Please ensure all product quantities and prices are valid positive numbers');
 
-      let needStockValidation = false;
       if (orderToEdit) {
         // Cek jika ada perubahan pada order_items atau qty
-        const prevItems = (orderToEdit.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
-        const currItems = (formData.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
-        needStockValidation = JSON.stringify(prevItems) !== JSON.stringify(currItems);
-      } else {
-        needStockValidation = true;
-      }
+        // const prevItems = (orderToEdit.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
+        // const currItems = (formData.order_items || []).map(item => ({ product_id: item.product_id, qty: item.qty, price: item.price }));
+        // let needStockValidation = false;
+        // if (JSON.stringify(prevItems) !== JSON.stringify(currItems)) {
+        //   needStockValidation = true;
+        // }
 
-      const selectedBatch = batches.find((b) => b.id === formData.batch_id);
-      if (!selectedBatch || !selectedBatch.batch_products)
-        throw new Error('Selected batch is invalid or has no products');
+        // if (needStockValidation) {
+        //   const selectedBatch = batches.find((b) => b.id === formData.batch_id);
+        //   if (!selectedBatch || !selectedBatch.batch_products)
+        //     throw new Error('Selected batch is invalid or has no products');
 
-      if (needStockValidation) {
-        for (const item of formData.order_items) {
-          const batchProduct = selectedBatch.batch_products.find(
-            (bp) => bp.product_id === item.product_id
-          );
-          if (!batchProduct)
-            throw new Error(`Product is not available in the selected batch`);
-          if (batchProduct.remaining_qty < item.qty) {
-            throw new Error(
-              `Insufficient quantity for product. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
-            );
-          }
-        }
+        //   for (const item of formData.order_items) {
+        //     const batchProduct = selectedBatch.batch_products.find(
+        //       (bp) => bp.product_id === item.product_id
+        //     );
+        //     if (!batchProduct)
+        //       throw new Error(`Product is not available in the selected batch`);
+        //     if (batchProduct.remaining_qty < item.qty) {
+        //       throw new Error(
+        //         `Insufficient quantity for product. Available: ${batchProduct.remaining_qty}, Requested: ${item.qty}`
+        //       );
+        //     }
+        //   }
+        // }
       }
 
       if (orderToEdit) {
@@ -736,20 +738,21 @@ const OrderPage: React.FC = () => {
   console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
 
   // --- Dapatkan batch title dari batchIdFilter (gunakan variabel yang sudah ada di atas) ---
-  const batchTitle = batchIdFilter ? (batches.find(b => b.batch_id === batchIdFilter)?.batch_id || batchIdFilter) : '';
+  const batchId = batchIdFilterFromUrl;
+  const batchName = batchId
+    ? batches.find(b => b.id === batchId)?.batch_id || ''
+    : '';
 
-  // --- Summary Card Light Mode ---
-  const totalProduksiText = `VCO B (-): 1000 kg\nVCO A (-): 1000 kg\nVCO Kosmetik (-): 1000 kg`;
-  const totalOrderText = `VCO B (-): 800 kg\nVCO A (-): 750 kg\nVCO Kosmetik (-): 300 kg`;
-  const sisaProduksiText = `VCO B (-): 200 kg\nVCO A (-): 250 kg\nVCO Kosmetik (-): 700 kg`;
-
+  // --- SUMMARY SECTION: TotalQtySection ---
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
       <div className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-4">
           <div>
-            <h1 className="text-3xl font-bold">Orders</h1>
+            <h1 className="text-3xl font-bold">
+              Orders{batchName ? ` : ${batchName}` : ''}
+            </h1>
             <p className="text-gray-600 mt-1">Manage customer orders and batch allocations</p>
           </div>
           <div className="flex gap-2">
@@ -786,20 +789,11 @@ const OrderPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <h2 className="font-semibold text-gray-700 mb-2">Total Produksi</h2>
-            <div className="text-sm text-gray-700 whitespace-pre-line">{totalProduksiText}</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <h2 className="font-semibold text-gray-700 mb-2">Total Order</h2>
-            <div className="text-sm text-gray-700 whitespace-pre-line">{totalOrderText}</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <h2 className="font-semibold text-gray-700 mb-2">Sisa Produksi</h2>
-            <div className="text-sm text-gray-700 whitespace-pre-line">{sisaProduksiText}</div>
-          </div>
-        </div>
+        <TotalQtySection
+          filteredOrders={filteredOrders}
+          batches={batches}
+          companies={companies}
+        />
 
         <div className="mb-6">
           <div className="relative">
@@ -1020,7 +1014,7 @@ const OrderPage: React.FC = () => {
           }}
           onSave={handleQtyChange}
           onQtyChange={setNewQty}
-          batches={[]}
+          batches={batches}
         />
 
         <BulkEditModal
