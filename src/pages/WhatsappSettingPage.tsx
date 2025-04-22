@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Navbar2 from '../components/Navbar2';
+import QRCode from 'react-qr-code';
 
-const BASE_URL = 'http://localhost:3331'; // Ganti jika backend berjalan di host/port berbeda
+const BASE_URL = 'https://wagt.satcoconut.com'; // Ganti jika backend berjalan di host/port berbeda
 
 // --- MULTI SESSION SUPPORT ---
 // Ambil daftar session dari backend
@@ -33,8 +34,8 @@ const WhatsappSettingPage: React.FC = () => {
   const fetchQr = async (sid: string) => {
     setQr(null);
     try {
-      // Ambil QR image (base64 PNG) dari backend
-      const res = await fetch(`${BASE_URL}/whatsapp/qr-image/${sid}`);
+      // Ambil QR string dari backend (bukan image)
+      const res = await fetch(`${BASE_URL}/whatsapp/qr-string/${sid}`);
       if (!res.ok) throw new Error('Gagal fetch QR');
       const data = await res.json();
       setQr(data.qr);
@@ -55,7 +56,7 @@ const WhatsappSettingPage: React.FC = () => {
         body: JSON.stringify({ session_id: selectedSession }),
       });
       if (!res.ok) throw new Error('Gagal mulai session');
-      // Fetch QR image after starting
+      // Fetch QR string after starting
       await fetchQr(selectedSession);
       setStatus('idle');
     } catch (e: any) {
@@ -203,7 +204,9 @@ const WhatsappSettingPage: React.FC = () => {
         {qr && (
           <div className="flex flex-col items-center mt-4">
             <div className="mb-2 text-gray-700">Scan QR di bawah ini dengan WhatsApp:</div>
-            <img src={`data:image/png;base64,${qr}`} alt="QR Code" className="w-56 h-56 bg-white p-2 rounded border border-gray-300" />
+            <div style={{ background: '#fff', padding: 12, borderRadius: 8, border: '1px solid #eee' }}>
+              <QRCode value={qr} size={224} />
+            </div>
           </div>
         )}
         {status==='connected' && (

@@ -41,7 +41,7 @@ const BroadcastPage: React.FC = () => {
   }, [search, customers]);
 
   useEffect(() => {
-    fetch('http://localhost:3331/whatsapp/sessions')
+    fetch('https://wagt.satcoconut.com/whatsapp/sessions')
       .then(res => res.json())
       .then(data => {
         setSessions(data);

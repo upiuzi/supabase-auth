@@ -51,7 +51,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   useEffect(() => {
     if (showSendPdfModal) {
-      fetch('http://localhost:3331/whatsapp/sessions')
+      fetch('https://wagt.satcoconut.com/whatsapp/sessions')
         .then(async (res) => {
           if (!res.ok) return;
           const data = await res.json();
@@ -457,7 +457,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       formData.append('text', 'Invoice Order');
       formData.append('media', new File([blob], 'invoice.pdf', { type: 'application/pdf' }));
       // Send to backend
-      const res = await fetch('http://localhost:3331/message/send-document', {
+      const res = await fetch('https://wagt.satcoconut.com/message/send-document', {
         method: 'POST',
         body: formData,
       });

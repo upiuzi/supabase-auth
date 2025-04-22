@@ -15,5 +15,5 @@ export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 // API Base URL config
 export const API_BASE_URL =
   window.location.hostname === 'localhost'
-    ? 'http://localhost:3331'
+    ? 'https://wagt.satcoconut.com'
     : 'https://wagt.satcoconut.com';

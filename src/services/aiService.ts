@@ -1,4 +1,3 @@
-const OPENROUTER_API_KEY = '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';
 const DEEPSEEK_API_KEY = 'sk-ab787366d3c647c4849bedacd0212d1b';
 
 export async function askAI(messages: { role: 'user' | 'assistant' | 'system'; content: string }[]): Promise<string> {

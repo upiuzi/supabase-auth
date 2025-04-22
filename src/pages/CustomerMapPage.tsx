@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { getCustomers, getOrders, Customer, Order } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas-pro';
 
 // Default icon fix for leaflet in React
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -46,10 +48,14 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "Cilegon": [-6.0167, 106.0534]       // Banten
 };
 
+interface CustomerWithQty extends Customer {
+  totalQty: number;
+}
+
 const shortId = (id: string) => id.length > 6 ? id.slice(0, 6) + '...' : id;
 
 const CustomerMapPage: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithQty[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [cityFilter, setCityFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,7 +78,7 @@ const CustomerMapPage: React.FC = () => {
         }
       });
       // Gabungkan ke customer
-      const merged: Customer[] = customerData.map(c => ({ ...c, totalQty: qtyMap[c.id] || 0 }));
+      const merged: CustomerWithQty[] = customerData.map(c => ({ ...c, totalQty: qtyMap[c.id] || 0 }));
       // Urutkan dari qty terbesar ke terkecil
       merged.sort((a, b) => b.totalQty - a.totalQty);
       setCustomers(merged);
@@ -96,6 +102,23 @@ const CustomerMapPage: React.FC = () => {
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => { setCurrentPage(1); }, [cityFilter]);
+
+  // --- Export PDF ---
+  const handleExportPDF = async () => {
+    const input = document.getElementById('customer-table-section');
+    if (!input) return;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: 'a4' });
+    const canvas = await html2canvas(input, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgProps = pdf.getImageProperties(imgData);
+    const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
+    const imgWidth = imgProps.width * ratio;
+    const imgHeight = imgProps.height * ratio;
+    pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 20, imgWidth, imgHeight);
+    pdf.save('customer-order-volume.pdf');
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -161,7 +184,16 @@ const CustomerMapPage: React.FC = () => {
           </MapContainer>
         </div>
         {/* Table customer */}
-        <div className="overflow-x-auto mt-4">
+        <div className="overflow-x-auto mt-4" id="customer-table-section">
+          {/* Tombol Export PDF */}
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={handleExportPDF}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold shadow"
+            >
+              Export PDF
+            </button>
+          </div>
           <table className="min-w-full bg-white rounded-lg">
             <thead>
               <tr className="text-gray-600 text-left">

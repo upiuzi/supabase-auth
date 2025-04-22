@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 dotenv.config();
 import cors from 'cors';
 import multer from 'multer';
+import { createCanvas } from 'canvas';
 import QRCode from 'qrcode';
 
 // Langsung masukkan nilai Supabase URL & Key
@@ -38,14 +39,6 @@ app.get('/', (req, res) => {
 // Route untuk status
 app.get('/status', (req, res) => {
   res.json({ status: 'ok' });
-});
-
-// Endpoint alias agar frontend bisa akses QR string
-app.get('/whatsapp/qr-string/:session_id', async (req, res) => {
-  const { session_id } = req.params;
-  const { data, error } = await supabase.from('wa_sessions').select('last_qr').eq('session_id', session_id).single();
-  if (error) return res.status(404).json({ error: 'Session not found' });
-  res.json({ qr: data.last_qr });
 });
 
 // Route untuk kirim pesan teks WhatsApp
@@ -337,15 +330,9 @@ whatsapp.loadSessionsFromStorage();
   // --- PERBAIKI QR SESSION DINAMIS ---
   // Simpan QR code ke DB untuk session dinamis
   whatsapp.onQRUpdated(async ({ sessionId, qr }) => {
-    // Cek status session di DB
-    const { data, error } = await supabase.from('wa_sessions').select('status').eq('session_id', sessionId).single();
-    if (data?.status === 'connected') {
-      // Jangan update QR atau tampilkan log QR jika sudah connected
-      console.log(`Session ${sessionId} sudah connected, QR tidak diupdate lagi.`);
-      return;
-    }
     console.log(`QR Code untuk session ${sessionId}:`);
     console.log(qr);
+    // Simpan/update QR di wa_sessions
     await supabase.from('wa_sessions').update({ last_qr: qr, status: 'pending' }).eq('session_id', sessionId);
   });
 

@@ -198,7 +198,7 @@ const OrderPage: React.FC = () => {
         setBroadcastLoading(false);
         return;
       }
-      const res = await fetch(`http://localhost:3331/api/databroadcastbatch/${batch_id}`);
+      const res = await fetch(`https://wagt.satcoconut.com/api/databroadcastbatch/${batch_id}`);
       const data = await res.json();
       console.log('DEBUG DATA BROADCAST API:', data); // LOG DEBUG
       let parsedData = data;
@@ -679,7 +679,7 @@ const OrderPage: React.FC = () => {
 
   const fetchWaSessions = async () => {
     try {
-      const res = await fetch('http://localhost:3331/whatsapp/sessions');
+      const res = await fetch('https://wagt.satcoconut.com/whatsapp/sessions');
       if (!res.ok) return;
       const data = await res.json();
       setWaSessions(data);
