@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { getCustomers, Customer } from '../services/supabaseService';
+import { getCustomers, getOrders, Customer, Order } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 
 // Default icon fix for leaflet in React
@@ -48,7 +48,155 @@ const CITY_COORDS: Record<string, [number, number]> = {
 
 const shortId = (id: string) => id.length > 6 ? id.slice(0, 6) + '...' : id;
 
-const PAGE_SIZE = 10;
+const CustomerMapPage: React.FC = () => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [cityFilter, setCityFilter] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    // Fetch customers and orders, then rekap totalQty per customer
+    const fetchData = async () => {
+      const [customerData, orderData] = await Promise.all([
+        getCustomers(),
+        getOrders(),
+      ]);
+      // Rekap totalQty per customer
+      const qtyMap: Record<string, number> = {};
+      orderData.forEach(order => {
+        if (!order.customer_id) return;
+        if (!qtyMap[order.customer_id]) qtyMap[order.customer_id] = 0;
+        if (order.order_items) {
+          qtyMap[order.customer_id] += order.order_items.reduce((sum, item) => sum + (item.qty || 0), 0);
+        }
+      });
+      // Gabungkan ke customer
+      const merged: Customer[] = customerData.map(c => ({ ...c, totalQty: qtyMap[c.id] || 0 }));
+      // Urutkan dari qty terbesar ke terkecil
+      merged.sort((a, b) => b.totalQty - a.totalQty);
+      setCustomers(merged);
+      setOrders(orderData);
+    };
+    fetchData();
+  }, []);
+
+  // Ambil daftar kota unik hasil normalisasi dari seluruh data customer
+  const allNormalizedCities = Array.from(new Set(customers.map(c => normalizeCityName(c.city)).filter(Boolean))).sort();
+
+  // Filter data berdasarkan cityFilter (dari dropdown di map)
+  const filtered = customers.filter((c) => {
+    const normCity = normalizeCityName(c.city);
+    if (!cityFilter) return true; // jika tidak ada filter, tampilkan semua
+    return normCity === cityFilter;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setCurrentPage(1); }, [cityFilter]);
+
+  return (
+    <div className="bg-gray-100 min-h-screen">
+      <Navbar2 />
+      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-6">
+        <h1 className="text-2xl font-bold mb-4 text-gray-900">Peta Lokasi Customer</h1>
+        {/* Dropdown filter city */}
+        <div className="mb-3 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="cityFilter" className="text-gray-700 font-medium">Filter kota:</label>
+            <select
+              id="cityFilter"
+              value={cityFilter}
+              onChange={e => setCityFilter(e.target.value)}
+              className="border rounded px-2 py-1 bg-white text-gray-900"
+            >
+              <option value="">Semua Kota</option>
+              {allNormalizedCities.map(city => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </div>
+          {/* Dropdown filter jumlah data tampil */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="pageSize" className="text-gray-700 font-medium">Tampilkan:</label>
+            <select
+              id="pageSize"
+              value={pageSize}
+              onChange={e => setPageSize(Number(e.target.value))}
+              className="border rounded px-2 py-1 bg-white text-gray-900"
+            >
+              {[10, 20, 50, 500, 1000].map(size => (
+                <option key={size} value={size}>{size} data</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="border rounded mb-6" style={{ height: '350px', width: '100%', minHeight: 200, background: 'white' }}>
+          <MapContainer center={filtered[0] ? (CITY_COORDS[normalizeCityName(filtered[0].city)] || CITY_COORDS['Jakarta']) : [-2.5, 118.0]} zoom={6} style={{ height: '100%', width: '100%' }}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {/* Tampilkan marker hanya untuk hasil filter city */}
+            {filtered.map((c, idx) => {
+              const normalizedCity = normalizeCityName(c.city);
+              const coords = CITY_COORDS[normalizedCity] || CITY_COORDS['Jakarta'];
+              return (
+                <Marker key={c.id} position={coords}>
+                  <Popup>
+                    <div>
+                      <div><b>ID:</b> {shortId(c.id)}</div>
+                      <div><b>Nama:</b> {c.name}</div>
+                      <div><b>Alamat:</b> {c.address || '-'}</div>
+                      <div><b>Kota:</b> {normalizedCity || '-'}</div>
+                      <div><b>Total Qty:</b> <span className="font-semibold text-blue-700">{c.totalQty?.toLocaleString() || 0}</span></div>
+                      {idx === 0 && <div className="mt-2 inline-block px-2 py-1 rounded bg-yellow-200 text-yellow-800 text-xs font-bold">TOP BUYER</div>}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        </div>
+        {/* Table customer */}
+        <div className="overflow-x-auto mt-4">
+          <table className="min-w-full bg-white rounded-lg">
+            <thead>
+              <tr className="text-gray-600 text-left">
+                <th className="py-3 px-4">ID</th>
+                <th className="py-3 px-4">Nama</th>
+                <th className="py-3 px-4">Alamat</th>
+                <th className="py-3 px-4">Kota</th>
+                <th className="py-3 px-4 text-right">Total Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginated.map((c, idx) => (
+                <tr key={c.id} className="border-t border-gray-200 hover:bg-gray-100">
+                  <td className="py-3 px-4 text-gray-700">{shortId(c.id)}</td>
+                  <td className="py-3 px-4 text-gray-900">{c.name}</td>
+                  <td className="py-3 px-4 text-gray-900">{c.address || '-'}</td>
+                  <td className="py-3 px-4 text-gray-900">{normalizeCityName(c.city) || '-'}</td>
+                  <td className="py-3 px-4 text-right font-semibold text-blue-700">{c.totalQty?.toLocaleString() || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Pagination */}
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">First</button>
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Prev</button>
+          <span className="mx-2 text-gray-700">Halaman {currentPage} dari {totalPages}</span>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Next</button>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Last</button>
+        </div>
+      </main>
+    </div>
+  );
+};
 
 // Fungsi normalisasi nama kota ke bentuk baku (key CITY_COORDS)
 function normalizeCityName(city: string | null | undefined): string {
@@ -68,111 +216,5 @@ function normalizeCityName(city: string | null | undefined): string {
   // fallback: kapitalisasi kata pertama
   return city.charAt(0).toUpperCase() + city.slice(1);
 }
-
-const CustomerMapPage: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [cityFilter, setCityFilter] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    getCustomers().then((data) => setCustomers(data || []));
-  }, []);
-
-  // Ambil daftar kota unik hasil normalisasi dari seluruh data customer
-  const allNormalizedCities = Array.from(new Set(customers.map(c => normalizeCityName(c.city)).filter(Boolean))).sort();
-
-  // Filter data berdasarkan cityFilter (dari dropdown di map)
-  const filtered = customers.filter((c) => {
-    const normCity = normalizeCityName(c.city);
-    if (!cityFilter) return true; // jika tidak ada filter, tampilkan semua
-    return normCity === cityFilter;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  useEffect(() => { setCurrentPage(1); }, [cityFilter]);
-
-  return (
-    <div className="bg-gray-100 min-h-screen">
-      <Navbar2 />
-      <main className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-6">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900">Peta Lokasi Customer</h1>
-        {/* Dropdown filter city */}
-        <div className="mb-3 flex items-center gap-2">
-          <label htmlFor="cityFilter" className="text-gray-700 font-medium">Filter kota:</label>
-          <select
-            id="cityFilter"
-            value={cityFilter}
-            onChange={e => setCityFilter(e.target.value)}
-            className="border rounded px-2 py-1 bg-white text-gray-900"
-          >
-            <option value="">Semua Kota</option>
-            {allNormalizedCities.map(city => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
-        </div>
-        <div className="border rounded mb-6" style={{ height: '350px', width: '100%', minHeight: 200, background: 'white' }}>
-          <MapContainer center={filtered[0] ? (CITY_COORDS[normalizeCityName(filtered[0].city)] || CITY_COORDS['Jakarta']) : [-2.5, 118.0]} zoom={6} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {/* Tampilkan marker hanya untuk hasil filter city */}
-            {filtered.map((c) => {
-              const normalizedCity = normalizeCityName(c.city);
-              const coords = CITY_COORDS[normalizedCity] || CITY_COORDS['Jakarta'];
-              return (
-                <Marker key={c.id} position={coords}>
-                  <Popup>
-                    <div>
-                      <div><b>ID:</b> {shortId(c.id)}</div>
-                      <div><b>Nama:</b> {c.name}</div>
-                      <div><b>Alamat:</b> {c.address || '-'}</div>
-                      <div><b>Kota:</b> {normalizedCity || '-'}</div>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
-        </div>
-        {/* Table customer */}
-        <div className="overflow-x-auto mt-4">
-          <table className="min-w-full bg-white rounded-lg">
-            <thead>
-              <tr className="text-gray-600 text-left">
-                <th className="py-3 px-4">ID</th>
-                <th className="py-3 px-4">Nama</th>
-                <th className="py-3 px-4">Alamat</th>
-                <th className="py-3 px-4">Kota</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((c) => (
-                <tr key={c.id} className="border-t border-gray-200 hover:bg-gray-100">
-                  <td className="py-3 px-4 text-gray-700">{shortId(c.id)}</td>
-                  <td className="py-3 px-4 text-gray-900">{c.name}</td>
-                  <td className="py-3 px-4 text-gray-900">{c.address || '-'}</td>
-                  <td className="py-3 px-4 text-gray-900">{normalizeCityName(c.city) || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">First</button>
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Prev</button>
-          <span className="mx-2 text-gray-700">Halaman {currentPage} dari {totalPages}</span>
-          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Next</button>
-          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)} className="px-2 py-1 rounded bg-gray-200 disabled:bg-gray-100">Last</button>
-        </div>
-      </main>
-    </div>
-  );
-};
 
 export default CustomerMapPage;

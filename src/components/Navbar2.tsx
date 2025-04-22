@@ -37,6 +37,7 @@ const navigation = [
       { name: 'Production Capacity', link: '/report-production' },
       { name: 'Total Sales', link: '/report-sales' },
       { name: 'Top Customer', link: '/report-top-customer' },
+      { name: 'Map Customer', link: '/customer-map' },
     ],
   },
   {
