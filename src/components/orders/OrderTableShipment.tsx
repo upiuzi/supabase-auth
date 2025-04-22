@@ -1,6 +1,6 @@
 import React from 'react';
 import { Order, Customer, Batch, Product } from '../../type/schema';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 
 interface OrderTableShipmentProps {
   orders: Order[];
@@ -30,14 +30,16 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
   const handleDownloadPng = async () => {
     const table = document.getElementById('shipment-table');
     if (!table) return;
-    const canvas = await html2canvas(table, {
-      backgroundColor: '#fff', // light mode
-      useCORS: true,
-    });
-    const link = document.createElement('a');
-    link.download = 'shipment_table.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    try {
+      const dataUrl = await toPng(table, { backgroundColor: '#fff', cacheBust: true });
+      const link = document.createElement('a');
+      link.download = 'shipment_table.png';
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting table to PNG:', error);
+      alert('Failed to export table to PNG');
+    }
   };
 
   return (

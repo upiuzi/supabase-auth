@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { Customer, Batch } from '../../type/order';
 import { Order, Company, BankAccount } from '../../type/schema';
 
@@ -59,105 +59,20 @@ const OrderTable: React.FC<OrderTableProps> = ({
   const [sortByExpedition, setSortByExpedition] = useState(false);
 
   const handleExportToPNG = async () => {
-    if (tableRef.current) {
-      try {
-        const tableClone = tableRef.current.cloneNode(true) as HTMLElement;
-        tableClone.style.backgroundColor = '#1F2937';
-        tableClone.style.color = '#GGGGGG';
-        const tableElement = tableClone.querySelector('table') as HTMLElement;
-        if (tableElement) {
-          tableElement.style.backgroundColor = '#1F2937';
-        }
-
-        // Hide Actions column
-        const rows = tableClone.querySelectorAll('tr');
-        rows.forEach((row) => {
-          const cells = row.querySelectorAll('th, td');
-          if (cells.length > 0) {
-            const lastCell = cells[cells.length - 1] as HTMLElement;
-            lastCell.style.display = 'none';
-          }
-        });
-
-        const indexOfLastItem = currentPage * itemsPerPage;
-        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-        const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-
-        // Format Status column
-        const statusCells = tableClone.querySelectorAll('tbody tr:not(:last-child) td:nth-child(9)');
-        statusCells.forEach((cell, index) => {
-          if (index < currentItems.length) {
-            const order = currentItems[index];
-            const status = order.status;
-            const statusText = status.charAt(0).toUpperCase() + status.slice(1);
-            const statusSpan = document.createElement('span');
-            statusSpan.textContent = statusText;
-            const statusClasses = getStatusColor(status).split(' ').filter((cls) =>
-              cls.startsWith('bg-') || cls.startsWith('text-')
-            );
-            statusSpan.className = statusClasses.join(' ');
-            statusSpan.style.backgroundColor = getStatusColor(status).includes('bg-[#4A2F00]') ? '#4A2F00' :
-                                              getStatusColor(status).includes('bg-[#003087]') ? '#003087' :
-                                              getStatusColor(status).includes('bg-[#8B0000]') ? '#8B0000' : '#374151';
-            statusSpan.style.color = getStatusColor(status).includes('text-[#FFD700]') ? '#FFD700' :
-                                     getStatusColor(status).includes('text-[#FFFFFF]') ? '#FFFFFF' :
-                                     getStatusColor(status).includes('text-[#FFB6C1]') ? '#FFB6C1' : '#D1D5DB';
-            statusSpan.style.padding = '4px 12px';
-            statusSpan.style.borderRadius = '9999px';
-            statusSpan.style.display = 'inline-block';
-            cell.innerHTML = '';
-            cell.appendChild(statusSpan);
-          }
-        });
-
-        // Replace OKLCH colors for export
-        const replaceOklchColors = (element: HTMLElement) => {
-          const computedStyle = window.getComputedStyle(element);
-          if (computedStyle.backgroundColor.includes('oklch')) {
-            element.style.backgroundColor = '#1F2937';
-          }
-          if (computedStyle.color.includes('oklch')) {
-            element.style.color = '#FFFFFF';
-          }
-          if (computedStyle.borderColor.includes('oklch')) {
-            element.style.borderColor = '#374151';
-          }
-          ['fill', 'stroke'].forEach((prop) => {
-            if (computedStyle.getPropertyValue(prop).includes('oklch')) {
-              element.style.setProperty(prop, '#FFFFFF');
-            }
-          });
-          Array.from(element.children).forEach((child) =>
-            replaceOklchColors(child as HTMLElement)
-          );
-        };
-
-        replaceOklchColors(tableClone);
-
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.appendChild(tableClone);
-        document.body.appendChild(tempContainer);
-
-        console.log('Cloned table HTML before export:', tableClone.outerHTML);
-
-        const canvas = await html2canvas(tempContainer, {
-          backgroundColor: '#1F2937',
-          scale: 3,
-          useCORS: true,
-        });
-
-        document.body.removeChild(tempContainer);
-
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `order-table-${tableType}-${new Date().toISOString()}.png`;
-        link.click();
-      } catch (error) {
-        console.error('Error exporting table to PNG:', error);
-        alert('Failed to export table to PNG');
-      }
+    const tableElement = document.getElementById('order-table');
+    if (!tableElement) {
+      alert('Table element not found!');
+      return;
+    }
+    try {
+      const dataUrl = await toPng(tableElement, { backgroundColor: '#1F2937', cacheBust: true });
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `order-table-${tableType}-${new Date().toISOString()}.png`;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting table to PNG:', error);
+      alert('Failed to export table to PNG');
     }
   };
 
@@ -360,7 +275,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       )}
 
       <div className="overflow-x-auto export-compatible" ref={tableRef}>
-        <table className="min-w-full bg-white rounded-lg border-separate border-spacing-0 border border-gray-200">
+        <table id="order-table" className="min-w-full bg-white rounded-lg border-separate border-spacing-0 border border-gray-200">
           <thead>
             <tr className="text-gray-700 text-left border-b border-gray-200 bg-gray-50">
               <th className="py-3 px-4 w-16 font-semibold text-gray-700"> </th>

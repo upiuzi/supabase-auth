@@ -286,14 +286,14 @@ const respond_to_message = async (msg) => {
 
       let response;
       try {
-        response = await axios.post("https://n8n.buruh.ai/webhook/6650951a-a439-4281-b810-d970e0b631d4", data);
+        response = await axios.post("https://n8n.buruh.ai/webhook/ff25ab32-6480-4265-9754-37d022f50ae4", data);
         console.log("Response from n8n:", response.data);
       } catch (n8nError) {
         console.error("Error calling n8n webhook:", n8nError?.response?.data || n8nError.message);
         await whatsapp.sendTextMessage({
           sessionId: msg.sessionId,
           to: msg.key.remoteJid,
-          text: "Maaf, terjadi kesalahan pada server AI.",
+          text: "ok ka",
         });
         return;
       }
@@ -342,25 +342,25 @@ whatsapp.loadSessionsFromStorage();
   });
   // --- END PERBAIKI QR SESSION DINAMIS ---
 
-  whatsapp.onMessageReceived(async (msg) => {
-    if (msg.key.fromMe) {
-      console.log("Ignore: Message sent by me");
-      return;
-    }
+  // whatsapp.onMessageReceived(async (msg) => {
+  //   if (msg.key.fromMe) {
+  //     console.log("Ignore: Message sent by me");
+  //     return;
+  //   }
 
-    await whatsapp.readMessage({
-      sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
-      key: msg.key,
-    });
+  //   await whatsapp.readMessage({
+  //     sessionId: msg.sessionId, // Use the correct session ID from wa-multi-session
+  //     key: msg.key,
+  //   });
 
-    if (msg.key.remoteJid.includes("@g.us")) {
-      console.log("Group message");
-      await respond_to_message(msg);
-    } else {
-      console.log("Personal message");
-      await respond_to_message(msg);
-    }
-  });
+  //   if (msg.key.remoteJid.includes("@g.us")) {
+  //     console.log("Group message");
+  //     await respond_to_message(msg);
+  //   } else {
+  //     console.log("Personal message");
+  //     await respond_to_message(msg);
+  //   }
+  // });
 })();
 
 // --- MULTI SESSION WA SUPPORT ---
