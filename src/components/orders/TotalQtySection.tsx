@@ -1,35 +1,18 @@
 import { Batch } from '../../type/order';
 
-import { Order, Company } from '../../type/schema';
+import { Order } from '../../type/schema';
 
 interface TotalQtySectionProps {
   filteredOrders: Order[];
   batches: Batch[];
-  companies: Company[];
 }
 
-const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batches, companies }) => {
-  const getProductName = (productId: string, batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    if (batch && batch.batch_products) {
-      const batchProduct = batch.batch_products.find((bp) => bp.product_id === productId);
-      if (batchProduct && batchProduct.product) {
-        return batchProduct.product.name || 'Unknown Product';
-      }
-    }
-    return 'Unknown Product';
-  };
-
-  const getCompanyName = (companyId: string) => {
-    const company = companies.find((c) => c.id === companyId);
-    return company ? company.company_name : '-';
-  };
-
+const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batches }) => {
   // --- 1. TOTAL PRODUKSI ---
   // Hanya hitung batch yang sedang difilter, jika batchIdFilter ada
   let filteredBatches = batches;
   // Cari batchIdFilter dari URL jika ada
-  let batchIdFilter = null;
+  let batchIdFilter: string | null = null;
   if (typeof window !== 'undefined') {
     const url = new URL(window.location.href);
     batchIdFilter = url.searchParams.get('batch_id');
@@ -38,7 +21,7 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
     }
   }
   // Key: `${batchId}-${productId}`
-  const totalProduksi: Record<string, { productId: string; batchId: string; productName: string; companyId: string; initialQty: number }> = {};
+  const totalProduksi: Record<string, { productId: string; batchId: string; productName: string; initialQty: number }> = {};
   filteredBatches.forEach((batch) => {
     if (batch.batch_products) {
       batch.batch_products.forEach((bp) => {
@@ -47,7 +30,6 @@ const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batch
           productId: bp.product_id,
           batchId: batch.id,
           productName: bp.product?.name || 'Unknown Product',
-          companyId: batch.company_id || '',
           initialQty: bp.initial_qty || 0,
         };
       });

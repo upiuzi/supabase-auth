@@ -30,8 +30,6 @@ const BroadcastPage: React.FC = () => {
   const [sessions, setSessions] = useState<{session_id:string,status:string}[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
 
-  const allSelected = customers.length > 0 && selectedPhones.length === customers.length;
-
   useEffect(() => {
     getCustomers().then(setCustomers);
   }, []);
@@ -53,14 +51,6 @@ const BroadcastPage: React.FC = () => {
     setSelectedPhones((prev) =>
       prev.includes(phone) ? prev.filter((p) => p !== phone) : [...prev, phone]
     );
-  };
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedPhones([]);
-    } else {
-      setSelectedPhones(customers.map((c) => c.phone));
-    }
   };
 
   const handleAskAI = async () => {

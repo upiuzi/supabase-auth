@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { getCustomers, getOrders, Customer, Order } from '../services/supabaseService';
+import { getCustomers, getOrders, Customer } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas-pro';
@@ -56,7 +56,6 @@ const shortId = (id: string) => id.length > 6 ? id.slice(0, 6) + '...' : id;
 
 const CustomerMapPage: React.FC = () => {
   const [customers, setCustomers] = useState<CustomerWithQty[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
   const [cityFilter, setCityFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
@@ -64,12 +63,10 @@ const CustomerMapPage: React.FC = () => {
   useEffect(() => {
     // Fetch customers and orders, then rekap totalQty per customer
     const fetchData = async () => {
-      const [customerData, orderData] = await Promise.all([
-        getCustomers(),
-        getOrders(),
-      ]);
+      const customerData = await getCustomers();
       // Rekap totalQty per customer
       const qtyMap: Record<string, number> = {};
+      const orderData = await getOrders();
       orderData.forEach(order => {
         if (!order.customer_id) return;
         if (!qtyMap[order.customer_id]) qtyMap[order.customer_id] = 0;
@@ -82,7 +79,6 @@ const CustomerMapPage: React.FC = () => {
       // Urutkan dari qty terbesar ke terkecil
       merged.sort((a, b) => b.totalQty - a.totalQty);
       setCustomers(merged);
-      setOrders(orderData);
     };
     fetchData();
   }, []);
@@ -163,7 +159,7 @@ const CustomerMapPage: React.FC = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {/* Tampilkan marker hanya untuk hasil filter city */}
-            {filtered.map((c, idx) => {
+            {filtered.map(c => {
               const normalizedCity = normalizeCityName(c.city);
               const coords = CITY_COORDS[normalizedCity] || CITY_COORDS['Jakarta'];
               return (
@@ -175,7 +171,7 @@ const CustomerMapPage: React.FC = () => {
                       <div><b>Alamat:</b> {c.address || '-'}</div>
                       <div><b>Kota:</b> {normalizedCity || '-'}</div>
                       <div><b>Total Qty:</b> <span className="font-semibold text-blue-700">{c.totalQty?.toLocaleString() || 0}</span></div>
-                      {idx === 0 && <div className="mt-2 inline-block px-2 py-1 rounded bg-yellow-200 text-yellow-800 text-xs font-bold">TOP BUYER</div>}
+                      <div className="mt-2 inline-block px-2 py-1 rounded bg-yellow-200 text-yellow-800 text-xs font-bold">TOP BUYER</div>
                     </div>
                   </Popup>
                 </Marker>
@@ -205,7 +201,7 @@ const CustomerMapPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((c, idx) => (
+              {paginated.map(c => (
                 <tr key={c.id} className="border-t border-gray-200 hover:bg-gray-100">
                   <td className="py-3 px-4 text-gray-700">{shortId(c.id)}</td>
                   <td className="py-3 px-4 text-gray-900">{c.name}</td>

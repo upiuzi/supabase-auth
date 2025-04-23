@@ -1,16 +1,14 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { Customer, Batch } from '../../type/order';
+import { Batch } from '../../type/order';
 import { Order, Company, BankAccount, PaymentLog } from '../../type/schema';
 import { useState, useEffect } from 'react';
 import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
 import  supabase  from '../../supabase'; // Asumsi supabase client sudah dikonfigurasi
-import { sendBroadcast } from '../../services/broadcastService';
 
 interface OrderDetailModalProps {
   show: boolean;
   order: Order | null;
-  customers: Customer[];
   batches: Batch[];
   companies: Company[];
   bankAccounts: BankAccount[];
@@ -21,7 +19,6 @@ interface OrderDetailModalProps {
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   show,
   order,
-  customers,
   batches,
   companies,
   bankAccounts,
@@ -40,7 +37,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const [sessions, setSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [selectedSession, setSelectedSession] = useState('');
   const [sendingPdf, setSendingPdf] = useState(false);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   useEffect(() => {
     if (order) {
@@ -70,21 +66,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         console.error('Error fetching payment logs:', error);
       }
     }
-  };
-
-  const getCustomerName = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer ? customer.name : '-';
-  };
-
-  const getCustomerPhone = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.phone || '-';
-  };
-
-  const getCustomerAddress = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.address || '-';
   };
 
   const getBatchId = (batchId: string) => {
@@ -183,14 +164,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     customerYPos += 6;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Name: ${getCustomerName(order.customer_id)}`, rightColumnX, customerYPos);
+    doc.text(`Name: -`, rightColumnX, customerYPos);
     customerYPos += 6;
-    doc.text(`Phone Number: ${getCustomerPhone(order.customer_id)}`, rightColumnX, customerYPos);
+    doc.text(`Phone Number: -`, rightColumnX, customerYPos);
     customerYPos += 6;
-    const customerAddress = getCustomerAddress(order.customer_id);
-    const addressLinesCustomer = doc.splitTextToSize(`Address: ${customerAddress}`, maxWidth);
-    doc.text(addressLinesCustomer, rightColumnX, customerYPos);
-    customerYPos += 6 * addressLinesCustomer.length;
+    doc.text(`Address: -`, rightColumnX, customerYPos);
+    customerYPos += 6;
     doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
 
     doc.setFontSize(12);
@@ -301,14 +280,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       customerYPos += 6;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Name: ${getCustomerName(order.customer_id)}`, rightColumnX, customerYPos);
+      doc.text(`Name: -`, rightColumnX, customerYPos);
       customerYPos += 6;
-      doc.text(`Phone Number: ${getCustomerPhone(order.customer_id)}`, rightColumnX, customerYPos);
+      doc.text(`Phone Number: -`, rightColumnX, customerYPos);
       customerYPos += 6;
-      const customerAddress = getCustomerAddress(order.customer_id);
-      const addressLinesCustomer = doc.splitTextToSize(`Address: ${customerAddress}`, maxWidth);
-      doc.text(addressLinesCustomer, rightColumnX, customerYPos);
-      customerYPos += 6 * addressLinesCustomer.length;
+      doc.text(`Address: -`, rightColumnX, customerYPos);
+      customerYPos += 6;
       doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
 
       doc.setFontSize(12);
@@ -449,11 +426,10 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     try {
       // Generate PDF blob
       const blob = await generatePDFBlob(order);
-      setPdfBlob(blob);
       // Prepare FormData
       const formData = new FormData();
       formData.append('sessionId', selectedSession);
-      formData.append('to', getCustomerPhone(order.customer_id));
+      formData.append('to', '-');
       formData.append('text', 'Invoice Order');
       formData.append('media', new File([blob], 'invoice.pdf', { type: 'application/pdf' }));
       // Send to backend
@@ -486,9 +462,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
           <div>
             <h3 className="font-bold text-lg">Customer Details</h3>
-            <p>Name: {getCustomerName(order.customer_id)}</p>
-            <p>Phone: {getCustomerPhone(order.customer_id)}</p>
-            <p>Address: {getCustomerAddress(order.customer_id)}</p>
+            <p>Name: -</p>
+            <p>Phone: -</p>
+            <p>Address: -</p>
           </div>
         </div>
         <div className="mt-6">

@@ -102,7 +102,7 @@ const router = createBrowserRouter([
             element: <OrderPage />,
           },
           {
-            path: "/orderbatch",
+            path: "/orderbatch/:batchid",
             element: <OrderBatchPage />,
           },
           {

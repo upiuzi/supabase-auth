@@ -36,7 +36,6 @@ const DashboardPage = () => {
     soldOut: 0,
   });
   const [latestBatches, setLatestBatches] = useState<Batch[]>([]);
-  const [loading, setLoading] = useState(false);
   const [monthlyQtyTotals, setMonthlyQtyTotals] = useState<{ month: string; total: number }[]>([]);
   const [monthlyOmzetTotals, setMonthlyOmzetTotals] = useState<{ month: string; total: number }[]>([]);
 
@@ -45,7 +44,6 @@ const DashboardPage = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
     try {
       // Fetch all data
       const [customers, products, batches, orders] = await Promise.all([
@@ -162,8 +160,6 @@ const DashboardPage = () => {
       setLatestBatches(sortedBatches);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -241,10 +237,10 @@ const DashboardPage = () => {
         {/* Monthly Charts: Qty & Omset */}
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <ProductionQtyChart monthlyTotals={monthlyQtyTotals} showAll={true} height={160} label="Total Qty per Bulan" color="#2563eb" />
+            <ProductionQtyChart monthlyTotals={monthlyQtyTotals} height={160} label="Total Qty per Bulan" color="#2563eb" />
           </div>
           <div>
-            <ProductionQtyChart monthlyTotals={monthlyOmzetTotals} showAll={true} height={160} label="Total Omset per Bulan" color="#059669" prefix="Rp " />
+            <ProductionQtyChart monthlyTotals={monthlyOmzetTotals} height={160} label="Total Omset per Bulan" color="#059669" prefix="Rp " />
           </div>
         </div>
 

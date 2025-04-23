@@ -1,11 +1,10 @@
-import { FormData, Customer, Batch, OrderItem } from '../../type/order';
+import { FormData, Batch, OrderItem } from '../../type/order';
 import { Company, BankAccount } from '../../type/schema';
 
 interface OrderFormModalProps {
   show: boolean;
   loading: boolean;
   formData: FormData;
-  customers: Customer[];
   batches: Batch[];
   companies: Company[];
   bankAccounts: BankAccount[];
@@ -24,7 +23,6 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
   show,
   loading,
   formData,
-  customers,
   batches,
   companies,
   bankAccounts,
@@ -69,26 +67,6 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         </div>
         <form onSubmit={onSubmit}>
           <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Customer</label>
-              <select
-                name="customer_id"
-                value={formData.customer_id}
-                onChange={onInputChange}
-                className="w-full border border-gray-600 rounded px-3 py-2 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={loading}
-              >
-                <option value="" className="bg-gray-700 text-gray-200">
-                  Select customer
-                </option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id} className="bg-gray-700 text-gray-200">
-                    {customer.name}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-300">Batch</label>
               <select

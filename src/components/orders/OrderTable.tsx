@@ -16,41 +16,32 @@ interface OrderTableProps {
   itemsPerPage: number;
   currentPage: number;
   tableType: 'orders' | 'shipment';
-  onSelectOrder: (orderId: string) => void;
-  onSelectAll: () => void;
-  onPageChange: (page: number) => void;
-  onItemsPerPageChange: (items: number) => void;
-  onEditQty: (orderId: string, productId: string, qty: number) => void;
   onViewDetails: (order: Order) => void;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (orderId: string) => void;
-  onStatusChange: (orderId: string, status: 'pending' | 'confirmed' | 'cancelled') => void;
   onEditShipment: (order: Order) => void;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
+  onSelectOrder: (orderId: string) => void;
   batchTitle?: string; // Added batchTitle prop
 }
 
 const OrderTable: React.FC<OrderTableProps> = ({
-  // orders, // Added to destructure
   filteredOrders,
   customers,
   batches,
-  // companies,
-  // bankAccounts,
   loading,
   selectedOrders,
   itemsPerPage,
   currentPage,
   tableType,
-  onSelectOrder,
-  onSelectAll,
-  onPageChange,
-  onItemsPerPageChange,
-  onEditQty,
   onViewDetails,
   onEditOrder,
   onDeleteOrder,
-  onStatusChange,
   onEditShipment,
+  onPageChange,
+  onItemsPerPageChange,
+  onSelectOrder,
   batchTitle, // Added batchTitle prop
 }) => {
   console.log('OrderTable rendered with tableType:', tableType);
@@ -81,38 +72,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
     return customer ? customer.name : '-';
   };
 
-  const getCustomerPhone = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.phone || '-';
-  };
-
-  const getCustomerAddress = (customerId: string) => {
-    const customer = customers.find((c) => c.id === customerId);
-    return customer?.address || '-';
-  };
-
-  const getBatchId = (batchId: string) => {
-    const batch = batches.find((b) => b.id === batchId);
-    return batch ? batch.batch_id : '-';
-  };
-
-  // Utility to shorten invoice number
-  const getShortInvoiceNo = (invoiceNo: string) => {
-    if (!invoiceNo) return '';
-    if (invoiceNo.length <= 4) return invoiceNo;
-    return invoiceNo.slice(0, 2) + '.....';
-  };
-
-  // const getCompanyName = (companyId: string) => {
-  //   const company = companies.find((c) => c.id === companyId);
-  //   return company ? company.company_name : '-';
-  // };
-
-  // const getBankAccountName = (bankAccountId: string) => {
-  //   const bankAccount = bankAccounts.find((ba) => ba.id === bankAccountId);
-  //   return bankAccount ? `${bankAccount.account_name} (${bankAccount.bank_name})` : '-';
-  // };
-
   const getProductName = (productId: string, batchId: string) => {
     const batch = batches.find((b) => b.id === batchId);
     if (batch && batch.batch_products) {
@@ -129,30 +88,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
     return order.order_items.reduce((total, item) => total + item.price * item.qty, 0);
   };
 
-  const getTotalQtyAllProducts = (order: Order) => {
-    if (!order.order_items) return 0;
-    return order.order_items.reduce((total, item) => total + item.qty, 0);
-  };
-
   const getOverallTotalAmount = () => {
     return filteredOrders.reduce((total, order) => total + getTotalAmount(order), 0);
-  };
-
-  const getOverallTotalQtyAllProducts = () => {
-    return filteredOrders.reduce((total, order) => total + getTotalQtyAllProducts(order), 0);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-[#4A2F00] text-[#FFD700]';
-      case 'pending':
-        return 'bg-[#003087] text-[#FFFFFF]';
-      case 'cancelled':
-        return 'bg-[#8B0000] text-[#FFB6C1]';
-      default:
-        return 'bg-[#374151] text-[#D1D5DB]';
-    }
   };
 
   const handleSortByExpedition = () => {
@@ -281,7 +218,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
               <th className="py-3 px-4 w-16 font-semibold text-gray-700"> </th>
               <th className="py-3 px-4 font-semibold text-gray-700">Invoice No</th>
               <th className="py-3 px-4 font-semibold text-gray-700">Customer</th>
-              {/* <th className="py-3 px-4 font-semibold text-gray-700">Batch</th> */}
               <th className="py-3 px-4 font-semibold text-gray-700">Product</th>
               <th className="py-3 px-4 text-right font-semibold text-gray-700">Qty (kg)</th>
               <th className="py-3 px-4 text-right font-semibold text-gray-700">Price</th>
@@ -296,7 +232,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 <td colSpan={9} className="text-center py-10 text-gray-400 bg-white">No orders found.</td>
               </tr>
             ) : (
-              currentItems.map((order, index) => {
+              currentItems.map((order) => {
                 const orderItems = order.order_items || [];
                 const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
                 const totalAmount = getTotalAmount(order);
@@ -307,7 +243,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     </td>
                     <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getInvoiceNo(order)}</td>
                     <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
-                    {/* <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getBatchId(order.batch_id)}</td> */}
                     <td className="py-4 px-4 text-gray-900">-</td>
                     <td className="py-4 px-4 text-right">-</td>
                     <td className="py-4 px-4 text-right">-</td>
@@ -316,23 +251,22 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     <td className="py-4 px-4"></td>
                   </tr>
                 ) : (
-                  orderItems.map((item, idx) => (
-                    <tr key={order.id + '-' + idx} className={idx === orderItems.length - 1 ? 'border-b border-gray-100 bg-white' : 'bg-white'}>
-                      {idx === 0 && (
+                  orderItems.map((item) => (
+                    <tr key={order.id + '-' + item.product_id} className="bg-white">
+                      {item.product_id === orderItems[0].product_id && (
                         <>
                           <td className="py-4 px-4" rowSpan={rowSpan}>
                             <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
                           </td>
                           <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
                           <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
-                          {/* <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getBatchId(order.batch_id)}</td> */}
                         </>
                       )}
                       <td className="py-4 px-4 text-gray-900 align-top">{getProductName(item.product_id, order.batch_id)}</td>
                       <td className="py-4 px-4 text-right align-top">{item.qty}</td>
                       <td className="py-4 px-4 text-right align-top">Rp {item.price.toLocaleString('id-ID')}</td>
                       <td className="py-4 px-4 text-right align-top">Rp {(item.qty * item.price).toLocaleString('id-ID')}</td>
-                      {idx === 0 && (
+                      {item.product_id === orderItems[0].product_id && (
                         <>
                           <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
                           <td className="py-4 px-4" rowSpan={rowSpan}>
@@ -389,9 +323,9 @@ const OrderTable: React.FC<OrderTableProps> = ({
             >
               Previous
             </button>
-            {getPaginationButtons().map((page, index) => (
+            {getPaginationButtons().map((page) => (
               <button
-                key={index}
+                key={page}
                 onClick={() => typeof page === 'number' && onPageChange(page)}
                 disabled={typeof page !== 'number' || loading}
                 className={`px-4 py-2 rounded font-medium ${

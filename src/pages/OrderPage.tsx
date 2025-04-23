@@ -347,18 +347,6 @@ const OrderPage: React.FC = () => {
     );
   };
 
-  const handleSelectAll = () => {
-    const currentItems = filteredOrders.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-    if (selectedOrders.length === currentItems.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(currentItems.map((order) => order.id));
-    }
-  };
-
   const handleBulkEditSubmit = async () => {
     if (!bulkEditDate || selectedOrders.length === 0) {
       alert('Please select orders and a date');
@@ -434,39 +422,6 @@ const OrderPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating quantity:', error);
       alert('Failed to update quantity: ' + (error.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (
-    orderId: string,
-    newStatus: 'pending' | 'confirmed' | 'cancelled'
-  ) => {
-    setLoading(true);
-    try {
-      const order = await getOrderById(orderId);
-      if (!order) throw new Error('Order not found');
-
-      await updateOrder(
-        orderId,
-        {
-          ...order,
-          status: newStatus,
-          company_id: order.company_id,
-          bank_account_id: order.bank_account_id,
-        },
-        order.order_items?.map((item) => ({
-          product_id: item.product_id,
-          qty: item.qty,
-          price: item.price,
-        })) || []
-      );
-      await fetchOrders();
-      alert('Status updated successfully');
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Failed to update status');
     } finally {
       setLoading(false);
     }
@@ -645,17 +600,10 @@ const OrderPage: React.FC = () => {
             currentPage={currentPage}
             tableType={activeTab}
             onSelectOrder={handleSelectOrder}
-            onSelectAll={handleSelectAll}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={(items) => {
               setItemsPerPage(items);
               setCurrentPage(1);
-            }}
-            onEditQty={(orderId, productId, qty) => {
-              setSelectedOrderId(orderId);
-              setSelectedProductId(productId);
-              setNewQty(qty);
-              setShowQtyEditModal(true);
             }}
             onViewDetails={(order) => {
               navigate(`/orders/${order.id}`);
@@ -682,7 +630,6 @@ const OrderPage: React.FC = () => {
               setOrderToDelete(orderId);
               setShowDeleteConfirm(true);
             }}
-            onStatusChange={handleStatusChange}
             onEditShipment={(order) => {
               setOrderToEditShipment(order);
               setShowShipmentEditModal(true);
@@ -694,7 +641,6 @@ const OrderPage: React.FC = () => {
           show={showModal || showEditModal}
           loading={loading}
           formData={formData}
-          customers={customers}
           batches={batches}
           companies={companies}
           bankAccounts={bankAccounts}

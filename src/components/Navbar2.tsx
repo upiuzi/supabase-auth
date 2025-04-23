@@ -80,7 +80,7 @@ export default function Navbar2() {
   // Fetch user email from Supabase session
   useEffect(() => {
     const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
       if (data?.user?.email) setUserEmail(data.user.email);
     };
     fetchUser();

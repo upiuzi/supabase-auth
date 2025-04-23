@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
-import { Order, Customer, Batch, Product } from '../../type/schema';
+import { Order, Batch, Product } from '../../type/schema';
 import { toPng } from 'html-to-image';
 import { updateOrder } from '../../services/supabaseService';
 
 interface OrderTableShipmentProps {
   orders: Order[];
-  customers: Customer[];
   batches: Batch[];
   loading: boolean;
   products?: Product[];
 }
 
-const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, customers, batches, loading, products = [] }) => {
-  const getCustomerName = (customerId: string) => customers.find(c => c.id === customerId)?.name || '-';
-  const getCustomerPhone = (customerId: string) => customers.find(c => c.id === customerId)?.phone || '-';
-  const getCustomerAddress = (customerId: string) => customers.find(c => c.id === customerId)?.address || '-';
+const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, batches, loading, products = [] }) => {
   const getBatchId = (batchId: string) => batches.find(b => b.id === batchId)?.batch_id || '-';
   const getInvoiceId = (order: Order) => order.invoice_no || order.id;
   const getProductName = (productId: string) => products.find(p => p.id === productId)?.name || productId;
@@ -97,11 +93,11 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
         <thead className="bg-gray-100 text-gray-700 border-b border-gray-200">
           <tr>
             <th className="px-4 py-2">Invoice ID</th>
-            <th className="px-4 py-2">Customer</th>
             <th className="px-4 py-2">Batch</th>
-            <th className="px-4 py-2">Shipment</th>
+            <th className="px-4 py-2">Customer</th>
             <th className="px-4 py-2">Customer Phone</th>
             <th className="px-4 py-2">Customer Address</th>
+            <th className="px-4 py-2">Shipment</th>
             <th className="px-4 py-2">Products (Qty Jerigen)</th>
             <th className="px-4 py-2">Description</th>
             <th className="px-4 py-2">Status</th>
@@ -110,15 +106,17 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
         </thead>
         <tbody className="text-gray-900">
           {loading ? (
-            <tr><td colSpan={10} className="text-center py-4 text-gray-600">Loading...</td></tr>
+            <tr><td colSpan={11} className="text-center py-4 text-gray-600">Loading...</td></tr>
           ) : orders.length === 0 ? (
-            <tr><td colSpan={10} className="text-center py-4 text-gray-600">No orders available.</td></tr>
+            <tr><td colSpan={11} className="text-center py-4 text-gray-600">No orders available.</td></tr>
           ) : (
             orders.map(order => (
               <tr key={order.id} className="bg-white border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">{getInvoiceId(order)}</td>
-                <td className="px-4 py-2">{getCustomerName(order.customer_id)}</td>
                 <td className="px-4 py-2">{getBatchId(order.batch_id)}</td>
+                <td className="px-4 py-2">{order.customer?.name || '-'}</td>
+                <td className="px-4 py-2">{order.customer?.phone || '-'}</td>
+                <td className="px-4 py-2">{order.customer?.address || '-'}</td>
                 <td className="px-4 py-2">
                   {editOrderId === order.id ? (
                     <input
@@ -131,8 +129,6 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, custome
                     <span>{order.expedition || '-'}</span>
                   )}
                 </td>
-                <td className="px-4 py-2">{getCustomerPhone(order.customer_id)}</td>
-                <td className="px-4 py-2">{getCustomerAddress(order.customer_id)}</td>
                 <td className="px-4 py-2">{getProductList(order)}</td>
                 <td className="px-4 py-2">
                   {editOrderId === order.id ? (

@@ -179,7 +179,7 @@ const ReportProduction = () => {
         </div>
 
         {/* Chart Section */}
-        <ProductionQtyChart monthlyTotals={monthlyTotals} showAll={showAll} />
+        <ProductionQtyChart monthlyTotals={monthlyTotals} />
 
         {loading ? (
           <div className="text-center text-gray-600">Loading...</div>

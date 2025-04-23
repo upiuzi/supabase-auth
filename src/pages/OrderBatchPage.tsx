@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   getOrders,
   createOrder,
   updateOrder,
   deleteOrder,
   getOrderById,
-  getCustomers,
   getBatches,
   getCompanies,
   getBankAccounts,
-  getProducts
+  getCustomers,
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
@@ -23,9 +22,8 @@ import BulkEditModal from '../components/orders/BulkEditModal';
 import ShipmentEditModal from '../components/orders/ShipmentEditModal';
 import TotalQtySection from '../components/orders/TotalQtySection';
 import BroadcastConfirmModal from '../components/orders/BroadcastConfirmModal';
-import BroadcastReviewModal from '../components/orders/BroadcastReviewModal';
 import { sendOrderConfirmBroadcast } from '../services/waService';
-import { Order, Customer, Batch, OrderItem, Company, BankAccount, Product } from '../type/schema';
+import { Order, Batch, OrderItem, Company, BankAccount, Customer } from '../type/schema';
 
 // Extend jsPDF with autoTable plugin types
 declare module 'jspdf' {
@@ -52,12 +50,10 @@ interface FormData {
 const OrderPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [filteredShipments, setFilteredShipments] = useState<Order[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]); // Tambahkan state untuk companies
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]); // Tambahkan state untuk bank accounts
-  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]); // Tambahkan state untuk customers
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -82,7 +78,6 @@ const OrderPage: React.FC = () => {
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
-  const [broadcastStatusList, setBroadcastStatusList] = useState<{ phone: string; status: 'pending' | 'sending' | 'sent' | 'failed'; message: string }[]>([]);
   const [broadcastBatchData, setBroadcastBatchData] = useState<{
     name: string;
     phone: string;
@@ -91,9 +86,6 @@ const OrderPage: React.FC = () => {
     customer_id: string;
     price?: number; // price opsional
   }[]>([]);
-  const [batchIdFilter, setBatchIdFilter] = useState<string | null>(null);
-  const [showBroadcastReview, setShowBroadcastReview] = useState(false);
-  const [broadcastReviewLoading, setBroadcastReviewLoading] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     customer_id: '',
@@ -106,140 +98,44 @@ const OrderPage: React.FC = () => {
     description: '',
   });
 
-  const [searchParams] = useSearchParams();
-  const batchIdFilterFromUrl = searchParams.get('batch_id');
+  const { batchid } = useParams();
 
   useEffect(() => {
     fetchAllData();
   }, []);
 
   useEffect(() => {
-    if (orders.length > 0) {
+    if (batchid && batches.length > 0) {
+      // Filter orders by batchid from URL param
+      const filtered = orders.filter(order => order.batch_id === batchid);
+      setFilteredOrders(filtered);
+      setCurrentPage(1);
+    } else {
       applyFilters(orders);
     }
-  }, [batchIdFilterFromUrl, orders, searchQuery]);
+    // eslint-disable-next-line
+  }, [batchid, orders, batches]);
+
+  useEffect(() => {
+    if (orders.length > 0 && !batchid) {
+      applyFilters(orders);
+    }
+  }, [searchQuery, orders]);
 
   useEffect(() => {
     if (showBroadcastConfirm) fetchWaSessions();
   }, [showBroadcastConfirm]);
 
-  useEffect(() => {
-    if (showBroadcastReview) fetchBroadcastBatchData();
-  }, [showBroadcastReview]);
-
-  useEffect(() => {
-    if (activeTab === 'shipment') {
-      // Filter: hanya order dengan status 'confirmed' DAN batch sesuai batchIdFilterFromUrl
-      let shipments = orders.filter(order => order.status === 'confirmed');
-      if (batchIdFilterFromUrl) {
-        shipments = shipments.filter(order => order.batch_id === batchIdFilterFromUrl);
-      }
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        shipments = shipments.filter(
-          (order) =>
-            customers.find((c) => c.id === order.customer_id)?.name.toLowerCase().includes(query) ||
-            batches.find((b) => b.id === order.batch_id)?.batch_id.toLowerCase().includes(query) ||
-            order.status.toLowerCase().includes(query) ||
-            order.expedition?.toLowerCase().includes(query) ||
-            order.description?.toLowerCase().includes(query) ||
-            customers.find((c) => c.id === order.customer_id)?.phone?.toLowerCase().includes(query) ||
-            customers.find((c) => c.id === order.customer_id)?.address?.toLowerCase().includes(query) ||
-            companies.find((c) => c.id === order.company_id)?.company_name.toLowerCase().includes(query) ||
-            bankAccounts.find((ba) => ba.id === order.bank_account_id)?.account_name.toLowerCase().includes(query)
-        );
-      }
-      setFilteredShipments(shipments);
-      setCurrentPage(1);
-    }
-  }, [activeTab, orders, searchQuery, customers, batches, companies, bankAccounts, batchIdFilterFromUrl]);
-
-  // useEffect berikut DIHAPUS agar tidak overwrite broadcastBatchData secara otomatis
-  // useEffect(() => {
-  //   const batchId = searchParams.get('batch_id');
-  //   setBatchIdFilter(batchId);
-  //   if (batchId) {
-  //     fetch(`/api/databroadcastbatch/${batchId}`)
-  //       .then(res => res.json())
-  //       .then(data => setBroadcastBatchData(data || []));
-  //   } else {
-  //     setBroadcastBatchData([]);
-  //   }
-  // }, [searchParams]);
-
-  // Tambahkan fungsi untuk mengambil companies
-  const fetchCompanies = async () => {
-    try {
-      const data = await getCompanies();
-      setCompanies(data);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    }
-  };
-
-  // Tambahkan fungsi untuk mengambil bank accounts
-  const fetchBankAccounts = async () => {
-    try {
-      const data = await getBankAccounts();
-      setBankAccounts(data);
-    } catch (error) {
-      console.error('Error fetching bank accounts:', error);
-    }
-  };
-
-  // --- FUNGSI BARU: Ambil data broadcast batch sebelum buka modal ---
-  const fetchBroadcastBatchData = async () => {
-    setBroadcastLoading(true);
-    try {
-      const batch_id = batchIdFilterFromUrl || batchIdFilter;
-      console.log('DEBUG batch_id dipakai untuk fetch:', batch_id); // LOG DEBUG
-      if (!batch_id) {
-        alert('Batch belum dipilih!');
-        setBroadcastLoading(false);
-        return;
-      }
-      const res = await fetch(`https://wagt.satcoconut.com/api/databroadcastbatch/${batch_id}`);
-      const data = await res.json();
-      console.log('DEBUG DATA BROADCAST API:', data); // LOG DEBUG
-      let parsedData = data;
-      if (typeof data === 'string') {
-        try {
-          parsedData = JSON.parse(data);
-          console.log('DEBUG Data parsed:', parsedData);
-        } catch (e) {
-          console.error('ERROR parsing broadcast data:', e);
-        }
-      }
-      setBroadcastBatchData(parsedData);
-      setShowBroadcastReview(true); // buka modal review
-    } catch (err) {
-      alert('Gagal mengambil data broadcast batch');
-    } finally {
-      setBroadcastLoading(false);
-    }
-  };
-
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // Ambil batchId dari URL jika ada
-      const batchId = batchIdFilterFromUrl;
-      const data = await getOrders(batchId || undefined);
+      const data = await getOrders();
       setOrders(data);
       applyFilters(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchCustomers = async () => {
-    try {
-      const data = await getCustomers();
-      setCustomers(data);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
     }
   };
 
@@ -253,32 +149,21 @@ const OrderPage: React.FC = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const data = await getProducts();
-      setProducts(data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
-
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [ordersData, customersData, batchesData, companiesData, bankAccountsData, productsData] = await Promise.all([
+      const [ordersData, batchesData, companiesData, bankAccountsData, customersData] = await Promise.all([
         getOrders(),
-        getCustomers(),
         getBatches(),
         getCompanies(),
         getBankAccounts(),
-        getProducts()
+        getCustomers()
       ]);
       setOrders(ordersData);
-      setCustomers(customersData);
       setBatches(batchesData);
       setCompanies(companiesData);
       setBankAccounts(bankAccountsData);
-      setProducts(productsData);
+      setCustomers(customersData);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -288,40 +173,15 @@ const OrderPage: React.FC = () => {
 
   const applyFilters = (data: Order[]) => {
     let filtered = data;
-    if (batchIdFilterFromUrl) {
-      filtered = filtered.filter((order) => order.batch_id === batchIdFilterFromUrl);
-    }
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (order) =>
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.name.toLowerCase()
-            .includes(query) ||
-          batches
-            .find((b) => b.id === order.batch_id)
-            ?.batch_id.toLowerCase()
-            .includes(query) ||
+          order.customer_id.toLowerCase().includes(query) ||
+          batches.find((b) => b.id === order.batch_id)?.batch_id.toLowerCase().includes(query) ||
           order.status.toLowerCase().includes(query) ||
           order.expedition?.toLowerCase().includes(query) ||
-          order.description?.toLowerCase().includes(query) ||
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.phone?.toLowerCase()
-            .includes(query) ||
-          customers
-            .find((c) => c.id === order.customer_id)
-            ?.address?.toLowerCase()
-            .includes(query) ||
-          companies
-            .find((c) => c.id === order.company_id)
-            ?.company_name.toLowerCase()
-            .includes(query) || // Tambahkan filter untuk company
-          bankAccounts
-            .find((ba) => ba.id === order.bank_account_id)
-            ?.account_name.toLowerCase()
-            .includes(query) // Tambahkan filter untuk bank account
+          order.description?.toLowerCase().includes(query)
       );
     }
     setFilteredOrders(filtered);
@@ -503,18 +363,6 @@ const OrderPage: React.FC = () => {
     );
   };
 
-  const handleSelectAll = () => {
-    const currentItems = filteredOrders.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-    if (selectedOrders.length === currentItems.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(currentItems.map((order) => order.id));
-    }
-  };
-
   const handleBulkEditSubmit = async () => {
     if (!bulkEditDate || selectedOrders.length === 0) {
       alert('Please select orders and a date');
@@ -595,39 +443,6 @@ const OrderPage: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (
-    orderId: string,
-    newStatus: 'pending' | 'confirmed' | 'cancelled'
-  ) => {
-    setLoading(true);
-    try {
-      const order = await getOrderById(orderId);
-      if (!order) throw new Error('Order not found');
-
-      await updateOrder(
-        orderId,
-        {
-          ...order,
-          status: newStatus,
-          company_id: order.company_id, // Pastikan tetap ada
-          bank_account_id: order.bank_account_id, // Pastikan tetap ada
-        },
-        order.order_items?.map((item) => ({
-          product_id: item.product_id,
-          qty: item.qty,
-          price: item.price,
-        })) || []
-      );
-      await fetchOrders();
-      alert('Status updated successfully');
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Failed to update status');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleShipmentEdit = async (orderId: string, expedition: string, description: string) => {
     setLoading(true);
     try {
@@ -703,11 +518,11 @@ const OrderPage: React.FC = () => {
     }
     const groupedList = Object.values(grouped);
 
-    setBroadcastStatusList(
-      groupedList.map(d => ({ phone: d.phone, status: 'pending', message: '' }))
-    );
+    // setBroadcastStatusList(
+    //   groupedList.map(d => ({ phone: d.phone, status: 'pending', message: '' }))
+    // );
     for (const d of groupedList) {
-      setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sending', message: '' } : s));
+      // setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sending', message: '' } : s));
       // Build message listing all products in jerigen (1 jerigen = 19kg)
       const productLines = d.products.map(p => {
         const jerigen = Math.round(p.qty / 19);
@@ -722,26 +537,15 @@ const OrderPage: React.FC = () => {
           message,
           session,
         });
-        setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sent', message: 'Terkirim' } : s));
+        // setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'sent', message: 'Terkirim' } : s));
       } catch (e: any) {
-        setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'failed', message: e?.message || 'Gagal' } : s));
+        // setBroadcastStatusList(prev => prev.map(s => s.phone === d.phone ? { ...s, status: 'failed', message: e?.message || 'Gagal' } : s));
       }
     }
     setBroadcastLoading(false);
   };
 
-  const handleConfirmBroadcastReview = () => {
-    setShowBroadcastReview(false);
-    setShowBroadcastConfirm(true); // buka modal WA confirm (input tanggal, session, dst)
-  };
-
   console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
-
-  // --- Dapatkan batch title dari batchIdFilter (gunakan variabel yang sudah ada di atas) ---
-  const batchId = batchIdFilterFromUrl;
-  const batchName = batchId
-    ? batches.find(b => b.id === batchId)?.batch_id || ''
-    : '';
 
   // --- SUMMARY SECTION: TotalQtySection ---
   return (
@@ -751,7 +555,8 @@ const OrderPage: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold">
-              Orders{batchName ? ` : ${batchName}` : ''}
+              Orders
+              {batchid && batches.find(b => b.id === batchid) ? ` - ${batches.find(b => b.id === batchid)?.name || batches.find(b => b.id === batchid)?.batch_id}` : ''}
             </h1>
             <p className="text-gray-600 mt-1">Manage customer orders and batch allocations</p>
           </div>
@@ -777,7 +582,7 @@ const OrderPage: React.FC = () => {
               Create Order
             </button>
             <button
-              onClick={() => setShowBroadcastReview(true)}
+              onClick={() => fetchBroadcastBatchData()}
               className="bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded font-semibold shadow-sm"
               disabled={loading}
             >
@@ -792,7 +597,6 @@ const OrderPage: React.FC = () => {
         <TotalQtySection
           filteredOrders={filteredOrders}
           batches={batches}
-          companies={companies}
         />
 
         <div className="mb-6">
@@ -856,11 +660,9 @@ const OrderPage: React.FC = () => {
           <div className="text-center text-gray-600">Loading...</div>
         ) : activeTab === 'shipment' ? (
           <OrderTableShipment
-            orders={filteredShipments}
-            customers={customers}
+            orders={filteredOrders}
             batches={batches}
             loading={loading}
-            products={products}
           />
         ) : filteredOrders.length === 0 ? (
           <div className="text-center text-gray-600">No orders available.</div>
@@ -880,17 +682,10 @@ const OrderPage: React.FC = () => {
               currentPage={currentPage}
               tableType={activeTab}
               onSelectOrder={handleSelectOrder}
-              onSelectAll={handleSelectAll}
               onPageChange={setCurrentPage}
               onItemsPerPageChange={(items) => {
                 setItemsPerPage(items);
                 setCurrentPage(1);
-              }}
-              onEditQty={(orderId, productId, qty) => {
-                setSelectedOrderId(orderId);
-                setSelectedProductId(productId);
-                setNewQty(qty);
-                setShowQtyEditModal(true);
               }}
               onViewDetails={(order) => {
                 setOrderToView(order);
@@ -918,7 +713,6 @@ const OrderPage: React.FC = () => {
                 setOrderToDelete(orderId);
                 setShowDeleteConfirm(true);
               }}
-              onStatusChange={handleStatusChange}
               onEditShipment={(order) => {
                 setOrderToEditShipment(order);
                 setShowShipmentEditModal(true);
@@ -968,7 +762,6 @@ const OrderPage: React.FC = () => {
           show={showModal || showEditModal}
           loading={loading}
           formData={formData}
-          customers={customers}
           batches={batches}
           companies={companies}
           bankAccounts={bankAccounts}
@@ -991,7 +784,6 @@ const OrderPage: React.FC = () => {
         <OrderDetailModal
           show={showDetailModal}
           order={orderToView}
-          customers={customers}
           batches={batches}
           companies={companies}
           bankAccounts={bankAccounts}
@@ -1049,33 +841,6 @@ const OrderPage: React.FC = () => {
           sessions={waSessions}
           loading={broadcastLoading}
         />
-        <BroadcastReviewModal
-          show={showBroadcastReview}
-          onClose={() => setShowBroadcastReview(false)}
-          onConfirm={handleConfirmBroadcastReview}
-          data={broadcastBatchData}
-          loading={broadcastReviewLoading}
-        />
-        {broadcastStatusList.length > 0 && (
-          <div className="mt-4">
-            <h4 className="font-bold mb-2">Status Broadcast:</h4>
-            <ul className="text-sm">
-              {broadcastStatusList.map((s, idx) => (
-                <li key={idx}>
-                  <span className="font-mono text-gray-600">{s.phone}</span>:
-                  <span className={
-                    s.status === 'sent'
-                      ? 'text-green-400'
-                      : s.status === 'failed'
-                      ? 'text-red-400'
-                      : 'text-yellow-400'
-                  }> {s.status.toUpperCase()}</span>
-                  {s.message && <span className="ml-2 text-gray-500">({s.message})</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

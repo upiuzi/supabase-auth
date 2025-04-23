@@ -6,14 +6,13 @@ Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export interface ProductionQtyChartProps {
   monthlyTotals: { month: string; total: number }[];
-  showAll: boolean;
   height?: number;
   label?: string;
   color?: string;
   prefix?: string;
 }
 
-const ProductionQtyChart: React.FC<ProductionQtyChartProps> = ({ monthlyTotals, showAll, height = 220, label = 'Total Qty', color = '#2563eb', prefix = '' }) => {
+const ProductionQtyChart: React.FC<ProductionQtyChartProps> = ({ monthlyTotals, height = 220, label = 'Total Qty', color = '#2563eb', prefix = '' }) => {
   const data = {
     labels: monthlyTotals.map(item => item.month),
     datasets: [

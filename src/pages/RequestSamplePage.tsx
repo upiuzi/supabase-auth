@@ -48,7 +48,6 @@ const RequestSamplePage = () => {
   const [waLoading, setWaLoading] = useState(false);
   const [waStatus, setWaStatus] = useState<'idle'|'sent'|'failed'>('idle');
   const [waStatusMsg, setWaStatusMsg] = useState('');
-  const [selectedSample, setSelectedSample] = useState<any | null>(null);
   const [sessions, setSessions] = useState<{ session_id: string; status: string }[]>([]);
 
   useEffect(() => {
@@ -270,7 +269,7 @@ const RequestSamplePage = () => {
             placeholder="Search sample requests..."
             value={searchQuery}
             onChange={handleSearch}
-            className="w-full p-3 bg-gray-800 dark:bg-gray-200 border border-gray-700 dark:border-gray-300 rounded-lg text-white dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 bg-gray-800 dark:bg-gray-200 border border-gray-700 dark:border-gray-300 rounded-lg text-white dark:text-gray-900 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -321,7 +320,6 @@ const RequestSamplePage = () => {
                         </button>
                         <button
                           onClick={() => {
-                            setSelectedSample(sample);
                             setWaForm({
                               to: sample.customers?.phone || '',
                               message: `Halo ${sample.customers?.name || ''}, berikut update sample Anda...`,
