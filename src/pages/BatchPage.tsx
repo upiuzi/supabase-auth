@@ -244,10 +244,6 @@ const BatchPage = () => {
     }
   };
 
-  const handleBatchClick = (batchId: string) => {
-    navigate(`/orderbatch?batch_id=${batchId}`);
-  };
-
   const handleShipmentClick = (batchId: string) => {
     navigate(`/shipment?batch_id=${batchId}`);
   };
@@ -401,7 +397,7 @@ const BatchPage = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleBatchClick(batch.id);
+                        navigate(`/orderbatch/${batch.id}`);
                       }}
                       className="text-gray-600 hover:text-yellow-600"
                       title="View Orders"

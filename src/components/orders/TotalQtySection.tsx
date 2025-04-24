@@ -9,13 +9,12 @@ interface TotalQtySectionProps {
 
 const TotalQtySection: React.FC<TotalQtySectionProps> = ({ filteredOrders, batches }) => {
   // --- 1. TOTAL PRODUKSI ---
-  // Hanya hitung batch yang sedang difilter, jika batchIdFilter ada
+  // Cari batchIdFilter dari URL path param (bukan query param)
   let filteredBatches = batches;
-  // Cari batchIdFilter dari URL jika ada
   let batchIdFilter: string | null = null;
   if (typeof window !== 'undefined') {
-    const url = new URL(window.location.href);
-    batchIdFilter = url.searchParams.get('batch_id');
+    const match = window.location.pathname.match(/orderbatch\/?([\w-]+)/);
+    batchIdFilter = match && match[1] ? match[1] : null;
     if (batchIdFilter) {
       filteredBatches = batches.filter(b => b.id === batchIdFilter);
     }

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import { Customer, Batch } from '../../type/order';
 import { Order, Company, BankAccount } from '../../type/schema';
+import { updateOrderExpeditionDescription } from '../../services/orderShipmentService';
 
 interface OrderShipment {
   key?: 'orders' | 'shipment'; // Optional key prop
@@ -49,6 +50,9 @@ const OrderTable: React.FC<OrderShipment> = ({
   const tableRef = useRef<HTMLDivElement>(null);
   const [sortByExpedition, setSortByExpedition] = useState(false);
   const [editedOrders, setEditedOrders] = useState<Record<string, Partial<Order>>>({});
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [saveDisabled, setSaveDisabled] = useState(false);
 
   const handleExportToPNG = async () => {
     const tableElement = document.getElementById('order-table');
@@ -174,58 +178,89 @@ const OrderTable: React.FC<OrderShipment> = ({
 
   const getInvoiceNo = (order: Order) => order.invoice_no || order.id;
 
+  const handleSave = async () => {
+    setLoadingSave(true);
+    try {
+      for (const orderId in editedOrders) {
+        const changes = editedOrders[orderId];
+        await updateOrderExpeditionDescription(orderId, {
+          expedition: changes.expedition,
+          description: changes.description,
+        });
+      }
+      setEditedOrders({});
+      alert('Perubahan berhasil disimpan!');
+      // Auto refresh page
+      window.location.reload();
+    } catch (e) {
+      alert('Gagal menyimpan perubahan!');
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
+  const handleEditButtonClick = async () => {
+    if (!editMode) {
+      setEditMode(true);
+      setSaveDisabled(false);
+    } else {
+      setSaveDisabled(true);
+      setLoadingSave(true);
+      try {
+        for (const orderId in editedOrders) {
+          const changes = editedOrders[orderId];
+          await updateOrderExpeditionDescription(orderId, {
+            expedition: changes.expedition,
+            description: changes.description,
+          });
+        }
+        setEditedOrders({});
+        setEditMode(false);
+        alert('Perubahan berhasil disimpan!');
+      } catch (e) {
+        alert('Gagal menyimpan perubahan!');
+      } finally {
+        setLoadingSave(false);
+        setSaveDisabled(false);
+      }
+    }
+  };
+
   return (
     <>
       
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex gap-4 items-center">
-          <label className="text-gray-300">Show per page:</label>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
-            className="bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-          >
-            <option value={10}>10</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
-        <div className="flex gap-2">
-          {tableType === 'shipment' && (
-            <button
-              onClick={handleSortByExpedition}
-              disabled={loading}
-              className={`px-4 py-2 rounded flex items-center gap-2 text-white ${
-                sortByExpedition ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
-              } disabled:bg-gray-800 disabled:text-gray-500`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
-                />
-              </svg>
-              {sortByExpedition ? 'Sorted by Expedition' : 'Sort by Expedition'}
-            </button>
-          )}
-          <button
-            onClick={handleExportToPNG}
-            disabled={loading}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-green-300 flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            Export to PNG
-          </button>
-        </div>
+      <div className="flex flex-wrap gap-2 items-center justify-end mb-4">
+        <button
+          className="px-6 py-3 bg-gray-800 text-white rounded font-bold flex items-center gap-2 text-lg"
+          onClick={handleEditButtonClick}
+          disabled={loadingSave}
+          style={{ minWidth: 170 }}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+          </svg>
+          {editMode ? 'Simpan Perubahan' : 'Edit Data'}
+        </button>
+        <button
+          className="px-6 py-3 bg-gray-700 text-white rounded font-bold flex items-center gap-2 text-lg"
+          onClick={handleSortByExpedition}
+          style={{ minWidth: 170 }}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          Sort by Expedition
+        </button>
+        <button
+          className="px-6 py-3 bg-green-500 text-white rounded font-bold flex items-center gap-2 text-lg"
+          onClick={handleExportToPNG}
+          style={{ minWidth: 170 }}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v16h16V4z" />
+          </svg>
+          Export to PNG
+        </button>
       </div>
 
       {/* --- BATCH TITLE --- */}
@@ -270,11 +305,18 @@ const OrderTable: React.FC<OrderShipment> = ({
                         className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                         value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
                         onChange={(e) => handleExpeditionChange(order.id, e.target.value)}
-                        disabled={loading}
+                        disabled={!editMode}
                       />
                     </td>
                     <td className="py-4 px-4 text-right">-</td>
-                    <td className="py-4 px-4">{order.description || '-'}</td>
+                    <td className="py-4 px-4">
+                      <input
+                        className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
+                        value={editedOrders[order.id]?.description ?? order.description ?? ''}
+                        onChange={(e) => handleDescriptionChange(order.id, e.target.value)}
+                        disabled={!editMode}
+                      />
+                    </td>
                     <td className="py-4 px-4">{order.status}</td>
                   </tr>
                 ) : (
@@ -293,7 +335,7 @@ const OrderTable: React.FC<OrderShipment> = ({
                               className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                               value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
                               onChange={(e) => handleExpeditionChange(order.id, e.target.value)}
-                              disabled={loading}
+                              disabled={!editMode}
                             />
                           </td>
                         </>
@@ -306,7 +348,7 @@ const OrderTable: React.FC<OrderShipment> = ({
                             className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                             value={editedOrders[order.id]?.description ?? order.description ?? ''}
                             onChange={(e) => handleDescriptionChange(order.id, e.target.value)}
-                            disabled={loading}
+                            disabled={!editMode}
                           />
                         </td>
                       )}
