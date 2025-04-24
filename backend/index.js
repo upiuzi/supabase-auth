@@ -266,6 +266,59 @@ app.post('/send', async (req, res) => {
   }
 });
 
+// Endpoint baru: Generate PDF invoice dari data order, lalu kirim ke WhatsApp
+app.post('/message/send-invoice', async (req, res) => {
+  const { sessionId, to, order, text } = req.body;
+  if (!sessionId || !to || !order) {
+    return res.status(400).json({ error: 'sessionId, to, and order are required' });
+  }
+
+  try {
+    // --- Generate PDF invoice dari data order ---
+    // Contoh: gunakan pdfkit
+    const PDFDocument = require('pdfkit');
+    const getStream = require('get-stream');
+    const doc = new PDFDocument();
+    let buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      try {
+        await whatsapp.sendDocument({
+          sessionId,
+          to,
+          filename: 'invoice.pdf',
+          media: pdfBuffer,
+          text: text || 'Invoice Order',
+        });
+        res.json({ success: true, message: 'Invoice sent' });
+      } catch (err) {
+        console.error('Error sending WhatsApp invoice:', err);
+        res.status(500).json({ error: 'Failed to send invoice', details: err.message });
+      }
+    });
+    // --- Isi konten invoice (contoh sederhana, bisa dikembangkan sesuai kebutuhan) ---
+    doc.fontSize(20).text('INVOICE', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Invoice #: ${order.invoice_no || order.id}`);
+    doc.text(`Customer: ${order.customer?.name || '-'}`);
+    doc.text(`Phone: ${order.customer?.phone || '-'}`);
+    doc.text(`Address: ${order.customer?.address || '-'}`);
+    doc.text(`Date: ${(new Date()).toLocaleDateString('id-ID')}`);
+    doc.moveDown();
+    doc.text('Products:');
+    (order.order_items || []).forEach((item, idx) => {
+      doc.text(`${idx + 1}. ${item.product?.name || '-'} x${item.qty} @Rp${item.price}`);
+    });
+    doc.moveDown();
+    doc.text(`Total: Rp${order.total_amount || 0}`);
+    doc.end();
+  } catch (err) {
+    console.error('Error generating invoice:', err);
+    res.status(500).json({ error: 'Failed to generate invoice', details: err.message });
+  }
+});
+
 // Jalankan server Express
 app.listen(port, () => {
   console.log(`Express server running with CORS enabled on port ${port}`);

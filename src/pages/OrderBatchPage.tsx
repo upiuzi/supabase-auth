@@ -63,7 +63,7 @@ const OrderPage: React.FC = () => {
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [showQtyEditModal, setShowQtyEditModal] = useState(false);
   const [showShipmentEditModal, setShowShipmentEditModal] = useState(false);
-  const [orderToDelete] = useState<string | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [orderToView, setOrderToView] = useState<Order | null>(null);
   const [orderToEditShipment, setOrderToEditShipment] = useState<Order | null>(null);
@@ -349,6 +349,7 @@ const OrderPage: React.FC = () => {
         await deleteOrder(orderToDelete);
         await fetchOrders();
         await fetchBatches();
+        setOrderToDelete(null); // Gunakan setter setOrderToDelete
         setShowDeleteConfirm(false);
         if (filteredOrders.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
@@ -790,13 +791,25 @@ const OrderPage: React.FC = () => {
               itemsPerPage={itemsPerPage}
               currentPage={currentPage}
               tableType={activeTab}
-              onViewDetails={() => {}}
-              onEditOrder={() => {}}
-              onDeleteOrder={() => {}}
-              onEditShipment={() => {}}
+              onViewDetails={order => {
+                setOrderToView(order);
+                setShowDetailModal(true);
+              }}
+              onEditOrder={order => {
+                setOrderToEdit(order);
+                setShowEditModal(true);
+              }}
+              onDeleteOrder={orderId => {
+                setOrderToDelete(orderId); // Gunakan setter setOrderToDelete
+                setShowDeleteConfirm(true);
+              }}
+              onEditShipment={order => {
+                setOrderToEditShipment(order);
+                setShowShipmentEditModal(true);
+              }}
               onPageChange={(page: number) => setCurrentPage(page)}
               onItemsPerPageChange={(items: number) => setItemsPerPage(items)}
-              onSelectOrder={() => {}}
+              onSelectOrder={handleSelectOrder}
             />
           </div>
         )}

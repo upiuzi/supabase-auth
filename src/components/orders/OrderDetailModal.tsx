@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Batch } from '../../type/order';
-import { Order, Company, BankAccount, PaymentLog } from '../../type/schema';
+import { Order, Company, BankAccount, PaymentLog, Customer } from '../../type/schema';
 import { useState, useEffect } from 'react';
 import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
 import  supabase  from '../../supabase'; // Asumsi supabase client sudah dikonfigurasi
@@ -12,6 +12,7 @@ interface OrderDetailModalProps {
   batches: Batch[];
   companies: Company[];
   bankAccounts: BankAccount[];
+  customers: Customer[];
   loading: boolean;
   onClose: () => void;
 }
@@ -22,6 +23,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   batches,
   companies,
   bankAccounts,
+  customers = [], // Tambahan agar bisa akses customer
   loading,
   onClose,
 }) => {
@@ -280,11 +282,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
       customerYPos += 6;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Name: -`, rightColumnX, customerYPos);
+      const customer = customers.find((c) => c.id === order.customer_id);
+      doc.text(`Name: ${customer?.name || '-'}`, rightColumnX, customerYPos);
       customerYPos += 6;
-      doc.text(`Phone Number: -`, rightColumnX, customerYPos);
+      doc.text(`Phone Number: ${customer?.phone || '-'}`, rightColumnX, customerYPos);
       customerYPos += 6;
-      doc.text(`Address: -`, rightColumnX, customerYPos);
+      doc.text(`Address: ${customer?.address || '-'}`, rightColumnX, customerYPos);
       customerYPos += 6;
       doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
 
@@ -424,20 +427,21 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     if (!order || !selectedSession) return;
     setSendingPdf(true);
     try {
-      // Generate PDF blob
       const blob = await generatePDFBlob(order);
-      // Prepare FormData
       const formData = new FormData();
       formData.append('sessionId', selectedSession);
       formData.append('to', '-');
       formData.append('text', 'Invoice Order');
       formData.append('media', new File([blob], 'invoice.pdf', { type: 'application/pdf' }));
-      // Send to backend
       const res = await fetch('https://wagt.satcoconut.com/message/send-document', {
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error('Failed to send PDF');
+      if (!res.ok) {
+        const msg = await res.text();
+        alert('Failed to send PDF: ' + msg);
+        throw new Error(msg);
+      }
       alert('PDF sent to WhatsApp!');
       setShowSendPdfModal(false);
     } catch (err: any) {
