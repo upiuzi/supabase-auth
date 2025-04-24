@@ -315,57 +315,43 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   };
 
   const handleSendPdfToWa = async () => {
-    if (!order || !selectedSession) return;
+    if (!order) return;
     setSendingPdf(true);
     try {
-      // === DEBUG LOGGING ===
-      console.log('[DEBUG] order.customer:', order.customer);
-      console.log('[DEBUG] order.customer_id:', order.customer_id);
-      console.log('[DEBUG] customers:', customers);
-      // Cari data customer dari props customers jika order.customer kosong
-      let customerObj = order.customer;
-      if (!customerObj && order.customer_id && customers.length > 0) {
-        customerObj = customers.find(c => c.id === order.customer_id);
-        console.log('[DEBUG] customerObj found from customers:', customerObj);
+      // Cari data bank_account dari props berdasarkan order.bank_account_id
+      const bankAcc = bankAccounts.find((b) => b.id === order.bank_account_id) || null;
+      // Cari customerObj dari order.customer atau dari props customers
+      const customerObj = order.customer || customers.find(c => c.id === order.customer_id);
+      // Ambil nomor WA customer dan pastikan hanya angka
+      const waNumber = customerObj?.phone ? customerObj.phone.replace(/[^0-9]/g, '') : '';
+      if (!waNumber) {
+        alert('Nomor WhatsApp customer tidak ditemukan!');
+        setSendingPdf(false);
+        return;
       }
-      const customerPhone = customerObj?.phone || '-';
-      const customerId = customerObj?.id || order.customer_id || '-';
-      const waJid = customerPhone.includes('@c.us') ? customerPhone : `${customerPhone.replace(/[^0-9]/g, '')}@c.us`;
-
       const payload = {
-        orderId: order.id,
         sessionId: selectedSession,
-        waJid,
-        customerId,
-        customerPhone,
-        customer: customerObj,
-        order,
+        waJid: waNumber,
+        orderId: order.id,
+        customerId: order.customer_id,
+        customerPhone: waNumber,
+        bank_account: bankAcc ? {
+          bank_name: bankAcc.bank_name,
+          account_name: bankAcc.account_name,
+          account_number: bankAcc.account_number
+        } : undefined
       };
-      console.log('[SEND INVOICE] Data sent to backend:', payload);
-
+      // DEBUG LOG
+      console.log('[DEBUG] Kirim PDF ke WA payload:', payload);
       const res = await fetch(`${API_BASE_URL}/message/send-invoice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: order.id,
-          sessionId: selectedSession,
-          waJid,
-          customerId,
-          customerPhone,
-        }),
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Failed to send invoice');
-      const { url } = await res.json();
-      let msg = `Invoice berhasil dikirim ke WhatsApp customer!\n\n`;
-      msg += `Customer: ${customerObj?.name || '-'}\n`;
-      msg += `No. Invoice: ${order.invoice_no || order.id}\n`;
-      msg += `Total: Rp${order.total_amount || 0}\n`;
-      msg += `Tanggal: ${(new Date()).toLocaleDateString('id-ID')}\n`;
-      msg += `\nSilakan download PDF invoice di: ${url}`;
-      alert(msg);
+      if (!res.ok) throw new Error('Gagal mengirim PDF ke WhatsApp');
       setShowSendPdfModal(false);
-    } catch (err: any) {
-      alert('Gagal mengirim invoice: ' + (err.message || 'Unknown error'));
+    } catch (err) {
+      alert('Gagal mengirim PDF ke WhatsApp');
     } finally {
       setSendingPdf(false);
     }

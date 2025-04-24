@@ -278,7 +278,7 @@ app.post('/send', async (req, res) => {
 app.post('/message/send-invoice', async (req, res) => {
   // Kompatibel dengan frontend baru
   // Ambil waJid jika ada, fallback ke to
-  const { sessionId, waJid, to, orderId, customerId, customerPhone } = req.body;
+  const { sessionId, waJid, to, orderId, customerId, customerPhone, bank_account } = req.body;
   // Gunakan waJid jika ada, jika tidak fallback ke to
   let targetWa = waJid || to;
   if (typeof targetWa === 'string' && targetWa.endsWith('@c.us')) {
@@ -292,18 +292,19 @@ app.post('/message/send-invoice', async (req, res) => {
     // Query order detail lengkap dari Supabase (beserta relasi customer, company, bank, batch, order_items, product)
     const { data: order, error: orderErr } = await supabase
       .from('orders')
-      .select(`*,
-        company:company_id(*),
-        bank_account:bank_account_id(*),
-        batch:batch_id(*),
-        order_items(*, product:product_id(*))
-      `)
+      .select(`*, company:company_id(*), customer:customer_id(*), bank_account:bank_account_id(*), batch:batch_id(*), order_items:order_items(*, product:product_id(*))`)
       .eq('id', orderId)
       .single();
 
     if (orderErr || !order) {
-      return res.status(404).json({ error: 'Order not found', details: orderErr });
+      return res.status(404).json({ error: 'Order not found', details: orderErr?.message });
     }
+
+    // Gunakan data bank dari frontend jika ada, fallback ke hasil query
+    const bankData = bank_account || order.bank_account || {};
+    const bankName = bankData.bank_name || '-';
+    const accountName = bankData.account_name || '-';
+    const accountNumber = bankData.account_number || '-';
 
     // --- Ambil data customer dari tabel customers (bukan customer)
     const { data: customerData, error: customerErr } = await supabase
@@ -338,11 +339,11 @@ app.post('/message/send-invoice', async (req, res) => {
     doc.moveDown();
     doc.text(`Total: Rp${order.total_amount || 0}`);
     doc.moveDown();
-    doc.text(`Transfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})`);
+    doc.text(`Transfer ke: ${bankName} a.n ${accountName} (${accountNumber})`);
     doc.end();
 
     // Setelah PDF selesai disimpan, kirim response ke client dulu
-    const domain = process.env.PUBLIC_DOMAIN || 'https://namadomain.com'; // Atur domain sesuai environment
+    const domain = process.env.PUBLIC_DOMAIN || 'https://wagt.satcoconut.com'; // Atur domain sesuai environment
     const downloadUrl = `${domain}/invoice/${filename}`;
     res.json({ success: true, message: 'Invoice generated', url: downloadUrl });
 
@@ -360,7 +361,7 @@ app.post('/message/send-invoice', async (req, res) => {
       `Produk:\n` +
       (order.order_items || []).map((item, idx) => `${idx + 1}. ${item.product?.name || '-'} x${item.qty} @Rp${item.price}`).join('\n') +
       `\nTotal: Rp${order.total_amount || 0}\n` +
-      `\nTransfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})\n` +
+      `\nTransfer ke: ${bankName} a.n ${accountName} (${accountNumber})\n` +
       `\nDownload PDF: ${downloadUrl}`;
 
     console.log('DEBUG: sessionId:', sessionId);

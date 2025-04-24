@@ -37,7 +37,7 @@ const OrderTable: React.FC<OrderShipment> = ({
 }) => {
   console.log('OrderTable rendered with tableType:', tableType);
 
-  const tableRef = useRef<HTMLDivElement>(null);
+  // const tableRef = useRef<HTMLDivElement>(null); // Removed: unused variable
   const [sortByExpedition, setSortByExpedition] = useState(true);
   const [editedOrders, setEditedOrders] = useState<Record<string, Partial<Order>>>({});
   const [loadingSave, setLoadingSave] = useState(false);
