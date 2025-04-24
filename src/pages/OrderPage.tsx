@@ -644,6 +644,7 @@ const OrderPage: React.FC = () => {
           batches={batches}
           companies={companies}
           bankAccounts={bankAccounts}
+          customers={customers}
           isEdit={showEditModal}
           onClose={resetForm}
           onSubmit={handleSubmit}

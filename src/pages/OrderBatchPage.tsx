@@ -14,7 +14,6 @@ import {
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
 import OrderShipment from '../components/orders/Ordershipment';
-// import OrderTableShipment from '../components/orders/OrderTableShipment';
 import OrderFormModal from '../components/orders/OrderFormModal';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
 import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
@@ -64,7 +63,7 @@ const OrderPage: React.FC = () => {
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [showQtyEditModal, setShowQtyEditModal] = useState(false);
   const [showShipmentEditModal, setShowShipmentEditModal] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [orderToDelete] = useState<string | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [orderToView, setOrderToView] = useState<Order | null>(null);
   const [orderToEditShipment, setOrderToEditShipment] = useState<Order | null>(null);
@@ -79,7 +78,7 @@ const OrderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'shipment'>('orders');
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
-  const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
+  // const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [broadcastBatchData, setBroadcastBatchData] = useState<{
     payment_status: string;
     total: string;
@@ -135,9 +134,9 @@ const OrderPage: React.FC = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await getOrders();
-      setOrders(data);
-      applyFilters(data);
+      const ordersData = await getOrders();
+      setOrders(ordersData);
+      applyFilters(ordersData);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -147,8 +146,8 @@ const OrderPage: React.FC = () => {
 
   const fetchBatches = async () => {
     try {
-      const data = await getBatches();
-      setBatches(data);
+      const batchesData = await getBatches();
+      setBatches(batchesData);
     } catch (error) {
 
       console.error('Error fetching batches:', error);
@@ -177,8 +176,8 @@ const OrderPage: React.FC = () => {
     }
   };
 
-  const applyFilters = (data: Order[]) => {
-    let filtered = data;
+  const applyFilters = (orders: Order[]) => {
+    let filtered = orders;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -502,8 +501,7 @@ const OrderPage: React.FC = () => {
     try {
       const res = await fetch('https://wagt.satcoconut.com/whatsapp/sessions');
       if (!res.ok) return;
-      const data = await res.json();
-      setWaSessions(data);
+      // const data = await res.json();
     } catch (e) {}
   };
 
@@ -551,25 +549,25 @@ const OrderPage: React.FC = () => {
     setBroadcastLoading(false);
   };
 
-  const handleBroadcastBatchUnpaid = async (arrivalDate: string, session: string) => {
-    if (!broadcastBatchData.length) {
-      alert('Data broadcast kosong!');
-      return;
-    }
-    setBroadcastLoading(true);
-    for (const d of broadcastBatchData) {
-      // Pesan penagihan
-      const message = `Hallo ka ${d.name}, izin update untuk payment dengan invoice nomor ${d.invoice_no ?? '-'} dengan total tagihan ${d.total ?? '-'} kapan di proses ya?\n\nTerima kasih`;
-      try {
-        await sendOrderConfirmBroadcast({
-          to: d.phone,
-          message,
-          session,
-        });
-      } catch (e) {}
-    }
-    setBroadcastLoading(false);
-  };
+  // const handleBroadcastBatchUnpaid = async (arrivalDate: string, session: string) => {
+  //   if (!broadcastBatchData.length) {
+  //     alert('Data broadcast kosong!');
+  //     return;
+  //   }
+  //   setBroadcastLoading(true);
+  //   for (const d of broadcastBatchData) {
+  //     // Pesan penagihan
+  //     const message = `Hallo ka ${d.name}, izin update untuk payment dengan invoice nomor ${d.invoice_no ?? '-'} dengan total tagihan ${d.total ?? '-'} kapan di proses ya?\n\nTerima kasih`;
+  //     try {
+  //       await sendOrderConfirmBroadcast({
+  //         to: d.phone,
+  //         message,
+  //         session,
+  //       });
+  //     } catch (e) {}
+  //   }
+  //   setBroadcastLoading(false);
+  // };
 
   console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
 
@@ -623,34 +621,34 @@ const OrderPage: React.FC = () => {
             <button
               onClick={() => setShowBulkEditModal(true)}
               disabled={selectedOrders.length === 0 || loading}
-              className="flex items-center justify-center font-bold rounded transition-all duration-150 shadow-sm text-lg"
-              style={{ minWidth: 210, minHeight: 64, background: '#FFC107', color: '#222', border: 'none' }}
+              className="flex items-center justify-center font-bold rounded shadow-sm text-base transition-all duration-150"
+              style={{ minWidth: 160, minHeight: 48, background: '#FFC107', color: '#222', border: 'none' }}
             >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Edit Dates
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center justify-center font-bold rounded transition-all duration-150 shadow-sm text-lg"
-              style={{ minWidth: 210, minHeight: 64, background: '#2196F3', color: 'white', border: 'none' }}
+              className="flex items-center justify-center font-bold rounded shadow-sm text-base transition-all duration-150"
+              style={{ minWidth: 160, minHeight: 48, background: '#2196F3', color: 'white', border: 'none' }}
               disabled={loading}
             >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
               </svg>
               Create Order
             </button>
-            <div className="relative inline-block text-left" style={{ minWidth: 210, minHeight: 64 }}>
+            <div className="relative inline-block text-left" style={{ minWidth: 160, minHeight: 48 }}>
               <button
                 type="button"
-                className="flex items-center justify-center font-bold rounded transition-all duration-150 shadow-sm text-lg w-full h-full"
+                className="flex items-center justify-center font-bold rounded shadow-sm text-base transition-all duration-150 w-full h-full"
                 style={{ background: '#00E676', color: 'white', border: showBroadcastDropdown ? '2px solid #2196F3' : 'none' }}
                 onClick={() => setShowBroadcastDropdown((prev) => !prev)}
                 disabled={loading || broadcastLoading}
               >
-                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 Broadcast
@@ -759,56 +757,22 @@ const OrderPage: React.FC = () => {
         ) : activeTab === 'shipment' ? (
           <div>
             <OrderShipment
-          key={activeTab}
-          orders={orders}
-          filteredOrders={filteredOrders}
-          customers={customers}
-          batches={batches}
-          companies={companies}
-          bankAccounts={bankAccounts}
-          loading={loading}
-          selectedOrders={selectedOrders}
-          itemsPerPage={itemsPerPage}
-          currentPage={currentPage}
-          tableType={activeTab}
-          onSelectOrder={handleSelectOrder}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={(items) => {
-            setItemsPerPage(items);
-            setCurrentPage(1);
-          }}
-          onViewDetails={(order) => {
-            setOrderToView(order);
-            setShowDetailModal(true);
-          }}
-          onEditOrder={(order) => {
-            setOrderToEdit(order);
-            setFormData({
-              customer_id: order.customer_id,
-              batch_id: order.batch_id,
-              company_id: order.company_id,
-              bank_account_id: order.bank_account_id,
-              status: order.status,
-              expedition: order.expedition || '',
-              description: order.description || '',
-              order_items: order.order_items?.map((item) => ({
-                product_id: item.product_id,
-                qty: item.qty,
-                price: item.price,
-              })) || [],
-            });
-            setShowEditModal(true);
-          }}
-          onDeleteOrder={(orderId) => {
-            setOrderToDelete(orderId);
-            setShowDeleteConfirm(true);
-          }}
-          onEditShipment={(order) => {
-            setOrderToEditShipment(order);
-            setShowShipmentEditModal(true);
-          }}
-        /></div>
-
+              key={activeTab}
+              orders={orders}
+              filteredOrders={filteredOrders}
+              customers={customers}
+              batches={batches}
+              companies={companies}
+              bankAccounts={bankAccounts}
+              loading={loading}
+              selectedOrders={selectedOrders}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              tableType={activeTab}
+              onSelectOrder={handleSelectOrder}
+              onPageChange={(page: number) => setCurrentPage(page)}
+            />
+          </div>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center text-gray-600">No orders available.</div>
         ) : (
@@ -826,42 +790,13 @@ const OrderPage: React.FC = () => {
               itemsPerPage={itemsPerPage}
               currentPage={currentPage}
               tableType={activeTab}
-              onSelectOrder={handleSelectOrder}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={(items) => {
-                setItemsPerPage(items);
-                setCurrentPage(1);
-              }}
-              onViewDetails={(order) => {
-                setOrderToView(order);
-                setShowDetailModal(true);
-              }}
-              onEditOrder={(order) => {
-                setOrderToEdit(order);
-                setFormData({
-                  customer_id: order.customer_id,
-                  batch_id: order.batch_id,
-                  company_id: order.company_id,
-                  bank_account_id: order.bank_account_id,
-                  status: order.status,
-                  expedition: order.expedition || '',
-                  description: order.description || '',
-                  order_items: order.order_items?.map((item) => ({
-                    product_id: item.product_id,
-                    qty: item.qty,
-                    price: item.price,
-                  })) || [],
-                });
-                setShowEditModal(true);
-              }}
-              onDeleteOrder={(orderId) => {
-                setOrderToDelete(orderId);
-                setShowDeleteConfirm(true);
-              }}
-              onEditShipment={(order) => {
-                setOrderToEditShipment(order);
-                setShowShipmentEditModal(true);
-              }}
+              onViewDetails={() => {}}
+              onEditOrder={() => {}}
+              onDeleteOrder={() => {}}
+              onEditShipment={() => {}}
+              onPageChange={(page: number) => setCurrentPage(page)}
+              onItemsPerPageChange={(items: number) => setItemsPerPage(items)}
+              onSelectOrder={() => {}}
             />
           </div>
         )}
@@ -872,7 +807,7 @@ const OrderPage: React.FC = () => {
             <select
               value={itemsPerPage}
               onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-              className="bg-white border border-gray-200 rounded px-3 py-2 text-gray-900"
+              className="bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
             >
               <option value={10}>10</option>
               <option value={50}>50</option>
@@ -983,9 +918,10 @@ const OrderPage: React.FC = () => {
         <BroadcastConfirmModal
           show={showBroadcastConfirm}
           onClose={() => setShowBroadcastConfirm(false)}
-          onSend={broadcastBatchData?.[0]?.payment_status === 'unpaid' ? handleBroadcastBatchUnpaid : handleBroadcastBatch}
-          data={broadcastBatchData}
-          loading={broadcastLoading} sessions={[]}        />
+          onSend={handleBroadcastBatch}
+          loading={broadcastLoading}
+          sessions={[]}        
+        />
       </div>
     </div>
   );

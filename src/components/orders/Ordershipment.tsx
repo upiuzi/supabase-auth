@@ -17,12 +17,7 @@ interface OrderShipment {
   itemsPerPage: number;
   currentPage: number;
   tableType: 'orders' | 'shipment';
-  onViewDetails: (order: Order) => void;
-  onEditOrder: (order: Order) => void;
-  onDeleteOrder: (orderId: string) => void;
-  onEditShipment: (order: Order) => void;
   onPageChange: (page: number) => void;
-  onItemsPerPageChange: (items: number) => void;
   onSelectOrder: (orderId: string) => void;
   batchTitle?: string; // Added batchTitle prop
 }
@@ -36,12 +31,7 @@ const OrderTable: React.FC<OrderShipment> = ({
   itemsPerPage,
   currentPage,
   tableType,
-  onViewDetails,
-  onEditOrder,
-  onDeleteOrder,
-  onEditShipment,
   onPageChange,
-  onItemsPerPageChange,
   onSelectOrder,
   batchTitle, // Added batchTitle prop
 }) => {
@@ -52,7 +42,6 @@ const OrderTable: React.FC<OrderShipment> = ({
   const [editedOrders, setEditedOrders] = useState<Record<string, Partial<Order>>>({});
   const [loadingSave, setLoadingSave] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [saveDisabled, setSaveDisabled] = useState(false);
 
   const handleExportToPNG = async () => {
     const tableElement = document.getElementById('order-table');
@@ -93,14 +82,11 @@ const OrderTable: React.FC<OrderShipment> = ({
     return 'Unknown Product';
   };
 
-  const getTotalAmount = (order: Order) => {
-    if (!order.order_items) return 0;
-    return order.order_items.reduce((total, item) => total + item.price * item.qty, 0);
-  };
-
-  const getOverallTotalAmount = () => {
-    return filteredOrders.reduce((total, order) => total + getTotalAmount(order), 0);
-  };
+  // Removed unused function to fix TS6133 lint error
+  // const getTotalAmount = (order: Order) => {
+  //   if (!order.order_items) return 0;
+  //   return order.order_items.reduce((total, item) => total + item.price * item.qty, 0);
+  // };
 
   const handleSortByExpedition = () => {
     setSortByExpedition(!sortByExpedition);
@@ -178,33 +164,10 @@ const OrderTable: React.FC<OrderShipment> = ({
 
   const getInvoiceNo = (order: Order) => order.invoice_no || order.id;
 
-  const handleSave = async () => {
-    setLoadingSave(true);
-    try {
-      for (const orderId in editedOrders) {
-        const changes = editedOrders[orderId];
-        await updateOrderExpeditionDescription(orderId, {
-          expedition: changes.expedition,
-          description: changes.description,
-        });
-      }
-      setEditedOrders({});
-      alert('Perubahan berhasil disimpan!');
-      // Auto refresh page
-      window.location.reload();
-    } catch (e) {
-      alert('Gagal menyimpan perubahan!');
-    } finally {
-      setLoadingSave(false);
-    }
-  };
-
   const handleEditButtonClick = async () => {
     if (!editMode) {
       setEditMode(true);
-      setSaveDisabled(false);
     } else {
-      setSaveDisabled(true);
       setLoadingSave(true);
       try {
         for (const orderId in editedOrders) {
@@ -221,7 +184,6 @@ const OrderTable: React.FC<OrderShipment> = ({
         alert('Gagal menyimpan perubahan!');
       } finally {
         setLoadingSave(false);
-        setSaveDisabled(false);
       }
     }
   };
@@ -231,35 +193,26 @@ const OrderTable: React.FC<OrderShipment> = ({
       
       <div className="flex flex-wrap gap-2 items-center justify-end mb-4">
         <button
-          className="px-6 py-3 bg-gray-800 text-white rounded font-bold flex items-center gap-2 text-lg"
+          className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm font-semibold"
           onClick={handleEditButtonClick}
           disabled={loadingSave}
           style={{ minWidth: 170 }}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-          {editMode ? 'Simpan Perubahan' : 'Edit Data'}
+          <span className="text-lg">+</span> Edit Data
         </button>
         <button
-          className="px-6 py-3 bg-gray-700 text-white rounded font-bold flex items-center gap-2 text-lg"
+          className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-white rounded hover:bg-gray-700 text-sm font-semibold"
           onClick={handleSortByExpedition}
           style={{ minWidth: 170 }}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          Sort by Expedition
+          <span className="text-lg">≡</span> Sort by Expedition
         </button>
         <button
-          className="px-6 py-3 bg-green-500 text-white rounded font-bold flex items-center gap-2 text-lg"
+          className="flex items-center gap-2 px-3 py-1.5 bg-green-500 text-white rounded hover:bg-green-600 text-sm font-semibold"
           onClick={handleExportToPNG}
           style={{ minWidth: 170 }}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v16h16V4z" />
-          </svg>
-          Export to PNG
+          <span className="text-lg">▢</span> Export to PNG
         </button>
       </div>
 

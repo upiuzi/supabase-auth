@@ -6,19 +6,9 @@ interface BroadcastConfirmModalProps {
   onSend: (arrivalDate: string, session: string) => void;
   sessions: { session_id: string; status: string }[];
   loading: boolean;
-  data: {
-    payment_status: string;
-    total: string;
-    invoice_no: string;
-    name: string;
-    phone: string;
-    product: string;
-    qty: number;
-    price?: number;
-  }[];
 }
 
-const BroadcastConfirmModal: React.FC<BroadcastConfirmModalProps> = ({ show, onClose, onSend, sessions, loading, data }) => {
+const BroadcastConfirmModal: React.FC<BroadcastConfirmModalProps> = ({ show, onClose, onSend, sessions, loading }) => {
   const [arrivalDate, setArrivalDate] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
 

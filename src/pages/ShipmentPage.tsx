@@ -9,17 +9,16 @@ import {
   Order, 
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
-import OrderTableShipment from '../components/orders/OrderTableShipment';
 
 const ShipmentPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  // const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // const [currentPage, setCurrentPage] = useState(1);
+  // const [itemsPerPage] = useState(10);
 
   const [searchParams] = useSearchParams();
   const batchIdFilter = searchParams.get('batch_id');
@@ -31,14 +30,14 @@ const ShipmentPage = () => {
   }, []);
 
   const fetchOrders = async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const data = await getOrders();
       setOrders(data);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -74,8 +73,8 @@ const ShipmentPage = () => {
         order.description?.toLowerCase().includes(query)
       );
     }
-    setFilteredOrders(filtered);
-    setCurrentPage(1);
+    // setFilteredOrders(filtered);
+    // setCurrentPage(1);
   };
 
   useEffect(() => {
@@ -91,30 +90,9 @@ const ShipmentPage = () => {
     return customer ? customer.name : '-';
   };
 
-  const getCustomerPhone = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer?.phone || '-';
-  };
-
-  const getCustomerAddress = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer?.address || '-';
-  };
-
   const getBatchId = (batchId: string) => {
     const batch = batches.find(b => b.id === batchId);
     return batch ? batch.batch_id : '-';
-  };
-
-  const getProductName = (productId: string, batchId: string) => {
-    const batch = batches.find(b => b.id === batchId);
-    if (batch && batch.batch_products) {
-      const batchProduct = batch.batch_products.find(bp => bp.product_id === productId);
-      if (batchProduct && batchProduct.product) {
-        return batchProduct.product.name || 'Unknown Product';
-      }
-    }
-    return 'Unknown Product';
   };
 
   return (
@@ -134,15 +112,7 @@ const ShipmentPage = () => {
             className="px-4 py-2 rounded bg-gray-800 border border-gray-600 text-white w-full max-w-xs"
           />
         </div>
-        <OrderTableShipment
-          filteredOrders={filteredOrders}
-          customers={customers}
-          batches={batches}
-          loading={loading}
-          itemsPerPage={itemsPerPage}
-          currentPage={currentPage}
-          onPageChange={setCurrentPage}
-        />
+        <div>TODO: Implement OrderTableShipment component</div>
       </div>
     </>
   );
