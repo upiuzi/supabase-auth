@@ -11,6 +11,7 @@ import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -275,9 +276,16 @@ app.post('/send', async (req, res) => {
 
 // Endpoint baru: Generate PDF invoice, simpan ke public/invoice, kirim pesan WA berisi ringkasan + link download
 app.post('/message/send-invoice', async (req, res) => {
-  const { sessionId, to, orderId } = req.body;
-  if (!sessionId || !to || !orderId) {
-    return res.status(400).json({ error: 'sessionId, to, and orderId are required' });
+  // Kompatibel dengan frontend baru
+  // Ambil waJid jika ada, fallback ke to
+  const { sessionId, waJid, to, orderId, customerId, customerPhone } = req.body;
+  // Gunakan waJid jika ada, jika tidak fallback ke to
+  let targetWa = waJid || to;
+  if (typeof targetWa === 'string' && targetWa.endsWith('@c.us')) {
+    targetWa = targetWa.replace('@c.us', '');
+  }
+  if (!sessionId || !targetWa || !orderId) {
+    return res.status(400).json({ error: 'sessionId, waJid/to, and orderId are required' });
   }
 
   try {
@@ -285,7 +293,6 @@ app.post('/message/send-invoice', async (req, res) => {
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .select(`*,
-        customer:customer_id(*),
         company:company_id(*),
         bank_account:bank_account_id(*),
         batch:batch_id(*),
@@ -298,20 +305,30 @@ app.post('/message/send-invoice', async (req, res) => {
       return res.status(404).json({ error: 'Order not found', details: orderErr });
     }
 
+    // --- Ambil data customer dari tabel customers (bukan customer)
+    const { data: customerData, error: customerErr } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', order.customer_id)
+      .maybeSingle();
+    if (customerErr) {
+      console.error('Error fetching customer:', customerErr);
+    }
+
     // --- Generate PDF invoice dan simpan ke public/invoice ---
     const filename = `invoice_${orderId}.pdf`;
     const invoiceDir = path.join(__dirname, 'public', 'invoice');
     if (!fs.existsSync(invoiceDir)) fs.mkdirSync(invoiceDir, { recursive: true });
     const filePath = path.join(invoiceDir, filename);
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const doc = new PDFDocument({ size: 'A4', margin: 20 }); // REDUCE MARGIN for smaller PDF
     doc.pipe(fs.createWriteStream(filePath));
     doc.font('Helvetica');
     doc.fontSize(20).text('INVOICE', { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`Invoice #: ${order.invoice_no || order.id}`);
-    doc.text(`Customer: ${order.customer?.name || '-'}`);
-    doc.text(`Phone: ${order.customer?.phone || '-'}`);
-    doc.text(`Address: ${order.customer?.address || '-'}`);
+    doc.text(`Customer: ${customerData?.name || '-'}`);
+    doc.text(`Phone: ${customerData?.phone || '-'}`);
+    doc.text(`Address: ${customerData?.address || '-'}`);
     doc.text(`Date: ${(new Date()).toLocaleDateString('id-ID')}`);
     doc.moveDown();
     doc.text('Products:');
@@ -324,18 +341,20 @@ app.post('/message/send-invoice', async (req, res) => {
     doc.text(`Transfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})`);
     doc.end();
 
-    // Setelah PDF selesai disimpan, kirim pesan WhatsApp (teks)
+    // Setelah PDF selesai disimpan, kirim response ke client dulu
     const domain = process.env.PUBLIC_DOMAIN || 'https://namadomain.com'; // Atur domain sesuai environment
     const downloadUrl = `${domain}/invoice/${filename}`;
-    // Pesan WhatsApp lengkap
+    res.json({ success: true, message: 'Invoice generated', url: downloadUrl });
+
+    // Kirim pesan WhatsApp di background
     const message =
       `Halo, berikut invoice order Anda.\n` +
       `\n` +
       `INVOICE\n` +
       `Invoice #: ${order.invoice_no || order.id}\n` +
-      `Customer: ${order.customer?.name || '-'}\n` +
-      `Phone: ${order.customer?.phone || '-'}\n` +
-      `Address: ${order.customer?.address || '-'}\n` +
+      `Customer: ${customerData?.name || '-'}\n` +
+      `Phone: ${customerData?.phone || '-'}\n` +
+      `Address: ${customerData?.address || '-'}\n` +
       `Tanggal: ${(new Date()).toLocaleDateString('id-ID')}\n` +
       `\n` +
       `Produk:\n` +
@@ -344,8 +363,25 @@ app.post('/message/send-invoice', async (req, res) => {
       `\nTransfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})\n` +
       `\nDownload PDF: ${downloadUrl}`;
 
-    await whatsapp.sendTextMessage({ sessionId, to, text: message });
-    res.json({ success: true, message: 'Invoice link sent', url: downloadUrl });
+    console.log('DEBUG: sessionId:', sessionId);
+    console.log('DEBUG: to:', targetWa);
+    console.log('DEBUG: message:', message);
+    console.log('DEBUG: Akan kirim WA', { sessionId, to: targetWa, message });
+    whatsapp.sendTextMessage({ sessionId, to: targetWa, text: message })
+      .then(() => console.log('Invoice sent to WhatsApp:', targetWa))
+      .catch((err) => console.error('Failed to send invoice to WhatsApp:', err));
+    console.log('DEBUG: sendTextMessage dipanggil');
+
+    // Kompres PDF di background (tidak blocking response)
+    const compressedPath = filePath.replace('.pdf', '_small.pdf');
+    exec(`gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.3 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=\"${compressedPath}\" \"${filePath}\"`, (err) => {
+      if (!err && fs.existsSync(compressedPath)) {
+        fs.renameSync(compressedPath, filePath);
+        console.log('PDF compressed successfully:', filePath);
+      } else if (err) {
+        console.warn('Ghostscript compression failed:', err.message);
+      }
+    });
   } catch (err) {
     console.error('Error generating invoice:', err);
     res.status(500).json({ error: 'Failed to generate invoice', details: err.message });

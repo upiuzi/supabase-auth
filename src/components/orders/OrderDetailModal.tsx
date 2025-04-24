@@ -24,7 +24,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   batches,
   companies,
   bankAccounts,
-  customers = [], // Tambahan agar bisa akses customer
+  customers = [], // Pastikan customers diterima sebagai prop
   loading,
   onClose,
 }) => {
@@ -160,6 +160,15 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     doc.text(addressLines, leftColumnX, yPos);
     yPos += 6 * addressLines.length;
 
+    // --- CUSTOMER DETAILS LOGIC ---
+    let customerObj = order?.customer;
+    if (!customerObj && order?.customer_id && customers.length > 0) {
+      customerObj = customers.find(c => c.id === order.customer_id);
+    }
+    const customerName = customerObj?.name || '-';
+    const customerPhone = customerObj?.phone || '-';
+    const customerAddress = customerObj?.address || '-';
+
     let customerYPos = 34;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -167,11 +176,11 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     customerYPos += 6;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Name: -`, rightColumnX, customerYPos);
+    doc.text(`Name: ${customerName}`, rightColumnX, customerYPos);
     customerYPos += 6;
-    doc.text(`Phone Number: -`, rightColumnX, customerYPos);
+    doc.text(`Phone: ${customerPhone}`, rightColumnX, customerYPos);
     customerYPos += 6;
-    doc.text(`Address: -`, rightColumnX, customerYPos);
+    doc.text(`Address: ${customerAddress}`, rightColumnX, customerYPos);
     customerYPos += 6;
     doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
 
@@ -233,125 +242,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     });
 
     doc.save(`Invoice_${getInvoiceNo(order)}_Standard.pdf`);
-  };
-
-  const generatePDFBlob = (order: Order): Promise<Blob> => {
-    return new Promise((resolve) => {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const leftColumnX = 10;
-      const rightColumnX = 100;
-      let yPos = 10;
-
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text('INVOICE', pageWidth / 2, yPos, { align: 'center' });
-      yPos += 8;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Invoice #: ${getInvoiceNo(order)}`, pageWidth / 2, yPos, { align: 'center' });
-      yPos += 6;
-      const currentDate = new Date().toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
-      doc.text(`Date: ${currentDate}`, pageWidth / 2, yPos, { align: 'center' });
-      yPos += 10;
-
-      const selectedCompany = companies.find((c) => c.id === order.company_id);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(selectedCompany?.company_name || 'Unknown Company', leftColumnX, yPos);
-      yPos += 8;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Phone: ${selectedCompany?.phone || '-'}`, leftColumnX, yPos);
-      yPos += 6;
-      doc.text(`Email: ${selectedCompany?.email || '-'}`, leftColumnX, yPos);
-      yPos += 6;
-      const companyAddress = selectedCompany?.address || '-';
-      const maxWidth = 90;
-      const addressLines = doc.splitTextToSize(`Address: ${companyAddress}`, maxWidth);
-      doc.text(addressLines, leftColumnX, yPos);
-      yPos += 6 * addressLines.length;
-
-      let customerYPos = 34;
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Customer Details', rightColumnX, customerYPos);
-      customerYPos += 6;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const customer = customers.find((c) => c.id === order.customer_id);
-      doc.text(`Name: ${customer?.name || '-'}`, rightColumnX, customerYPos);
-      customerYPos += 6;
-      doc.text(`Phone Number: ${customer?.phone || '-'}`, rightColumnX, customerYPos);
-      customerYPos += 6;
-      doc.text(`Address: ${customer?.address || '-'}`, rightColumnX, customerYPos);
-      customerYPos += 6;
-      doc.text(`Batch: ${getBatchId(order.batch_id)}`, rightColumnX, customerYPos);
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Products', leftColumnX, yPos);
-      yPos += 2;
-      doc.setLineWidth(0.5);
-      doc.setDrawColor(150, 150, 150);
-      doc.line(leftColumnX, yPos, pageWidth - 10, yPos);
-      yPos += 6;
-
-      const headers = ['Product Name', 'Description', 'Qty', 'Price', 'Total'];
-      const data =
-        order.order_items?.map((item) => [
-          getProductName(item.product_id, order.batch_id),
-          getProductDescription(item.product_id, order.batch_id).substring(0, 20) + '...',
-          item.qty.toString(),
-          `Rp ${item.price.toLocaleString('id-ID')}`,
-          `Rp ${(item.price * item.qty).toLocaleString('id-ID')}`,
-        ]) || [];
-
-      doc.autoTable({
-        startY: yPos,
-        head: [headers],
-        body: [
-          ...data,
-          ['', '', '', 'Grand Total', `Rp ${getTotalAmount(order).toLocaleString('id-ID')}`],
-          ['', '', `${getTotalQtyAllProducts(order)}`, 'Total Qty', ''],
-        ],
-        styles: { fontSize: 10, font: 'helvetica' },
-        headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: 'bold' },
-        bodyStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-        alternateRowStyles: { fillColor: [255, 255, 255] },
-        margin: { left: leftColumnX, right: 10 },
-      });
-      yPos = (doc as any).lastAutoTable.finalY + 10;
-
-      const selectedBankAccount = bankAccounts.find((ba) => ba.id === order.bank_account_id);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Payment Methods', leftColumnX, yPos);
-      yPos += 6;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Bank: ${selectedBankAccount?.bank_name || '-'}`, leftColumnX, yPos);
-      yPos += 6;
-      doc.text(
-        `${selectedBankAccount?.account_number || '-'} : ${selectedBankAccount?.account_name || '-'}`,
-        leftColumnX,
-        yPos
-      );
-
-      const pageHeight = doc.internal.pageSize.getHeight();
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text('Thank you for your business!', pageWidth / 2, pageHeight - 10, {
-        align: 'center',
-      });
-
-      const pdfBlob = doc.output('blob');
-      resolve(pdfBlob);
-    });
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -428,31 +318,46 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     if (!order || !selectedSession) return;
     setSendingPdf(true);
     try {
-      // Ambil nomor customer dari order
-      const customerPhone = order.customer?.phone || '-';
-      // Format JID jika perlu (misal: pastikan ada @c.us)
+      // === DEBUG LOGGING ===
+      console.log('[DEBUG] order.customer:', order.customer);
+      console.log('[DEBUG] order.customer_id:', order.customer_id);
+      console.log('[DEBUG] customers:', customers);
+      // Cari data customer dari props customers jika order.customer kosong
+      let customerObj = order.customer;
+      if (!customerObj && order.customer_id && customers.length > 0) {
+        customerObj = customers.find(c => c.id === order.customer_id);
+        console.log('[DEBUG] customerObj found from customers:', customerObj);
+      }
+      const customerPhone = customerObj?.phone || '-';
+      const customerId = customerObj?.id || order.customer_id || '-';
       const waJid = customerPhone.includes('@c.us') ? customerPhone : `${customerPhone.replace(/[^0-9]/g, '')}@c.us`;
+
+      const payload = {
+        orderId: order.id,
+        sessionId: selectedSession,
+        waJid,
+        customerId,
+        customerPhone,
+        customer: customerObj,
+        order,
+      };
+      console.log('[SEND INVOICE] Data sent to backend:', payload);
+
       const res = await fetch(`${API_BASE_URL}/message/send-invoice`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: order.id,
           sessionId: selectedSession,
-          to: waJid
-        })
+          waJid,
+          customerId,
+          customerPhone,
+        }),
       });
-      if (!res.ok) {
-        const msg = await res.text();
-        alert('Gagal mengirim invoice: ' + msg);
-        throw new Error(msg);
-      }
-      // Ambil URL PDF dari response
-      const data = await res.json();
-      const url = data.url;
-
-      // Compose pesan WhatsApp yang sama dengan backend agar user tahu link PDF
+      if (!res.ok) throw new Error('Failed to send invoice');
+      const { url } = await res.json();
       let msg = `Invoice berhasil dikirim ke WhatsApp customer!\n\n`;
-      msg += `Customer: ${order.customer?.name || '-'}\n`;
+      msg += `Customer: ${customerObj?.name || '-'}\n`;
       msg += `No. Invoice: ${order.invoice_no || order.id}\n`;
       msg += `Total: Rp${order.total_amount || 0}\n`;
       msg += `Tanggal: ${(new Date()).toLocaleDateString('id-ID')}\n`;
@@ -468,6 +373,14 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   if (!show || !order) return null;
 
+  let customerObj = order?.customer;
+  if (!customerObj && order?.customer_id && customers.length > 0) {
+    customerObj = customers.find(c => c.id === order.customer_id);
+  }
+  const customerName = customerObj?.name || '-';
+  const customerPhone = customerObj?.phone || '-';
+  const customerAddress = customerObj?.address || '-';
+
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-gray-800 p-6 rounded-lg w-full max-w-2xl text-white shadow-lg mx-2 sm:mx-auto sm:w-full sm:max-w-2xl overflow-y-auto max-h-[90vh]">
@@ -481,9 +394,9 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
           <div>
             <h3 className="font-bold text-lg">Customer Details</h3>
-            <p>Name: -</p>
-            <p>Phone: -</p>
-            <p>Address: -</p>
+            <p>Name: {customerName}</p>
+            <p>Phone: {customerPhone}</p>
+            <p>Address: {customerAddress}</p>
           </div>
         </div>
         <div className="mt-6">
@@ -721,6 +634,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
         </div>
       )}
+      
     </div>
   );
 };

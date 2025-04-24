@@ -797,6 +797,20 @@ const OrderPage: React.FC = () => {
               }}
               onEditOrder={order => {
                 setOrderToEdit(order);
+                setFormData({
+                  customer_id: order.customer_id,
+                  batch_id: order.batch_id,
+                  company_id: order.company_id,
+                  bank_account_id: order.bank_account_id,
+                  status: order.status,
+                  order_items: order.order_items ? order.order_items.map(item => ({
+                    product_id: item.product_id,
+                    qty: item.qty,
+                    price: item.price,
+                  })) : [],
+                  expedition: order.expedition || '',
+                  description: order.description || '',
+                });
                 setShowEditModal(true);
               }}
               onDeleteOrder={orderId => {
@@ -882,7 +896,9 @@ const OrderPage: React.FC = () => {
           companies={companies}
           bankAccounts={bankAccounts}
           loading={loading}
-          onClose={resetForm} customers={[]}        />
+          onClose={resetForm}
+          customers={customers} // Ubah dari [] menjadi customers
+        />
 
         <QtyEditModal
           show={showQtyEditModal}

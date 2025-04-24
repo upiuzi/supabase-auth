@@ -38,7 +38,7 @@ const OrderTable: React.FC<OrderShipment> = ({
   console.log('OrderTable rendered with tableType:', tableType);
 
   const tableRef = useRef<HTMLDivElement>(null);
-  const [sortByExpedition, setSortByExpedition] = useState(false);
+  const [sortByExpedition, setSortByExpedition] = useState(true);
   const [editedOrders, setEditedOrders] = useState<Record<string, Partial<Order>>>({});
   const [loadingSave, setLoadingSave] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -221,18 +221,18 @@ const OrderTable: React.FC<OrderShipment> = ({
         <div className="mb-2 text-lg font-semibold text-blue-400">Batch: {batchTitle}</div>
       )}
 
-      <div className="overflow-x-auto export-compatible" ref={tableRef}>
-        <table id="order-table" className="min-w-full bg-white rounded-lg border-separate border-spacing-0 border border-gray-200">
+      <div className="overflow-x-auto export-compatible rounded-lg border border-gray-200">
+        <table id="order-table" className="min-w-full bg-white border border-gray-300">
           <thead>
-            <tr className="text-gray-700 text-left border-b border-gray-200 bg-gray-50">
-              <th className="py-3 px-4 w-16 font-semibold text-gray-700"> </th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Invoice No</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Customer</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Customer Address</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Expedition</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Product</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Jerigen</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Description</th>
+            <tr className="text-gray-700 text-left border-b border-gray-300 bg-gray-50">
+              <th className="py-3 px-4 w-16 font-semibold text-gray-700 border-r border-gray-300"> </th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Invoice No</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Customer</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Customer Address</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Expedition</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Product</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Jerigen</th>
+              <th className="py-3 px-4 font-semibold text-gray-700 border-r border-gray-300">Description</th>
               <th className="py-3 px-4 font-semibold text-gray-700">Status</th>
             </tr>
           </thead>
@@ -246,14 +246,14 @@ const OrderTable: React.FC<OrderShipment> = ({
                 const orderItems = order.order_items || [];
                 const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
                 return orderItems.length === 0 ? (
-                  <tr key={order.id} className="border-b border-gray-100 bg-white">
-                    <td className="py-4 px-4" rowSpan={1}>
+                  <tr key={order.id} className="border-b border-gray-300 bg-white">
+                    <td className="py-4 px-4 border-r border-gray-300" rowSpan={1}>
                       <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
                     </td>
-                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getInvoiceNo(order)}</td>
-                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerAddress(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>
+                    <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={1}>{getInvoiceNo(order)}</td>
+                    <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
+                    <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={1}>{getCustomerAddress(order.customer_id)}</td>
+                    <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={1}>
                       <input
                         className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                         value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
@@ -261,8 +261,8 @@ const OrderTable: React.FC<OrderShipment> = ({
                         disabled={!editMode}
                       />
                     </td>
-                    <td className="py-4 px-4 text-right">-</td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 text-right border-r border-gray-300">-</td>
+                    <td className="py-4 px-4 border-r border-gray-300">
                       <input
                         className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                         value={editedOrders[order.id]?.description ?? order.description ?? ''}
@@ -274,16 +274,16 @@ const OrderTable: React.FC<OrderShipment> = ({
                   </tr>
                 ) : (
                   orderItems.map((item) => (
-                    <tr key={order.id + '-' + item.product_id} className="bg-white">
+                    <tr key={order.id + '-' + item.product_id} className="bg-white border-b border-gray-300">
                       {item.product_id === orderItems[0].product_id && (
                         <>
-                          <td className="py-4 px-4" rowSpan={rowSpan}>
+                          <td className="py-4 px-4 border-r border-gray-300" rowSpan={rowSpan}>
                             <input type="checkbox" checked={selectedOrders.includes(order.id)} onChange={() => onSelectOrder(order.id)} disabled={loading} className="rounded w-4 h-4 text-blue-500 focus:ring-blue-500" />
                           </td>
-                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
-                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
-                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerAddress(order.customer_id)}</td>
-                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>
+                          <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
+                          <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
+                          <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={rowSpan}>{getCustomerAddress(order.customer_id)}</td>
+                          <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={rowSpan}>
                             <input
                               className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                               value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
@@ -293,10 +293,10 @@ const OrderTable: React.FC<OrderShipment> = ({
                           </td>
                         </>
                       )}
-                      <td className="py-4 px-4 text-gray-900 align-top">{getProductName(item.product_id, order.batch_id)}</td>
-                      <td className="py-4 px-4 text-right align-top">{Math.floor(item.qty / 19)}</td>
+                      <td className="py-4 px-4 text-gray-900 align-top border-r border-gray-300">{getProductName(item.product_id, order.batch_id)}</td>
+                      <td className="py-4 px-4 text-right align-top border-r border-gray-300">{Math.floor(item.qty / 19)}</td>
                       {item.product_id === orderItems[0].product_id && (
-                        <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>
+                        <td className="py-4 px-4 text-gray-900 border-r border-gray-300" rowSpan={rowSpan}>
                           <input
                             className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
                             value={editedOrders[order.id]?.description ?? order.description ?? ''}
@@ -312,8 +312,9 @@ const OrderTable: React.FC<OrderShipment> = ({
               })
             )}
             <tr className="border-t border-gray-200 font-bold bg-gray-50">
-              <td colSpan={6} className="py-4 px-4 text-right">Total</td>
-              <td colSpan={4} className="py-4 px-4"></td>
+              <td colSpan={6} className="py-4 px-4 text-right border-r border-gray-300">Total</td>
+              <td colSpan={3} className="py-4 px-4 border-r border-gray-300"></td>
+              <td className="py-4 px-4"></td>
             </tr>
           </tbody>
         </table>
