@@ -3,6 +3,7 @@ import { getCustomers } from '../services/customerService';
 import { sendBroadcast, sendBroadcastImage, sendBroadcastVideo, sendBroadcastDocument, sendBroadcastVoice } from '../services/broadcastService';
 import { askAIString } from '../services/aiService';
 import Navbar2 from '../components/Navbar2';
+import { API_BASE_URL } from '../config';
 
 interface Customer {
   id: string;
@@ -39,7 +40,7 @@ const BroadcastPage: React.FC = () => {
   }, [search, customers]);
 
   useEffect(() => {
-    fetch('https://wagt.satcoconut.com/whatsapp/sessions')
+    fetch(`${API_BASE_URL}/whatsapp/sessions`)
       .then(res => res.json())
       .then(data => {
         setSessions(data);

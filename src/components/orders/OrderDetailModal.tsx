@@ -5,6 +5,7 @@ import { Order, Company, BankAccount, PaymentLog, Customer } from '../../type/sc
 import { useState, useEffect } from 'react';
 import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
 import  supabase  from '../../supabase'; // Asumsi supabase client sudah dikonfigurasi
+import { API_BASE_URL } from '../../config';
 
 interface OrderDetailModalProps {
   show: boolean;
@@ -49,7 +50,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   useEffect(() => {
     if (showSendPdfModal) {
-      fetch('https://wagt.satcoconut.com/whatsapp/sessions')
+      fetch(`${API_BASE_URL}/whatsapp/sessions`)
         .then(async (res) => {
           if (!res.ok) return;
           const data = await res.json();
@@ -427,25 +428,39 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     if (!order || !selectedSession) return;
     setSendingPdf(true);
     try {
-      const blob = await generatePDFBlob(order);
-      const formData = new FormData();
-      formData.append('sessionId', selectedSession);
-      formData.append('to', '-');
-      formData.append('text', 'Invoice Order');
-      formData.append('media', new File([blob], 'invoice.pdf', { type: 'application/pdf' }));
-      const res = await fetch('https://wagt.satcoconut.com/message/send-document', {
+      // Ambil nomor customer dari order
+      const customerPhone = order.customer?.phone || '-';
+      // Format JID jika perlu (misal: pastikan ada @c.us)
+      const waJid = customerPhone.includes('@c.us') ? customerPhone : `${customerPhone.replace(/[^0-9]/g, '')}@c.us`;
+      const res = await fetch(`${API_BASE_URL}/message/send-invoice`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          sessionId: selectedSession,
+          to: waJid
+        })
       });
       if (!res.ok) {
         const msg = await res.text();
-        alert('Failed to send PDF: ' + msg);
+        alert('Gagal mengirim invoice: ' + msg);
         throw new Error(msg);
       }
-      alert('PDF sent to WhatsApp!');
+      // Ambil URL PDF dari response
+      const data = await res.json();
+      const url = data.url;
+
+      // Compose pesan WhatsApp yang sama dengan backend agar user tahu link PDF
+      let msg = `Invoice berhasil dikirim ke WhatsApp customer!\n\n`;
+      msg += `Customer: ${order.customer?.name || '-'}\n`;
+      msg += `No. Invoice: ${order.invoice_no || order.id}\n`;
+      msg += `Total: Rp${order.total_amount || 0}\n`;
+      msg += `Tanggal: ${(new Date()).toLocaleDateString('id-ID')}\n`;
+      msg += `\nSilakan download PDF invoice di: ${url}`;
+      alert(msg);
       setShowSendPdfModal(false);
     } catch (err: any) {
-      alert('Failed to send PDF: ' + (err.message || 'Unknown error'));
+      alert('Gagal mengirim invoice: ' + (err.message || 'Unknown error'));
     } finally {
       setSendingPdf(false);
     }

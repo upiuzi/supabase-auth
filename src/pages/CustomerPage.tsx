@@ -9,6 +9,7 @@ import {
 import { getCustomers } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 const CustomerPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -71,7 +72,7 @@ const CustomerPage = () => {
     for (let i = 0; i < customersWithPhone.length; i++) {
       const customer = customersWithPhone[i];
       try {
-        const response = await fetch('https://wagt.satcoconut.com/send', {
+        const response = await fetch(`${API_BASE_URL}/send`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

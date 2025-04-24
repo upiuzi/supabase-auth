@@ -1,6 +1,8 @@
 // Broadcast sender: panggil backend API sesuai tipe pesan
 
-const BASE_URL = 'https://wagt.satcoconut.com'; // Ganti jika backend berjalan di host/port berbeda
+import { API_BASE_URL } from '../config';
+
+const BASE_URL = API_BASE_URL; // Ganti jika backend berjalan di host/port berbeda
 
 export async function sendBroadcast(phone: string, message: string, sessionId: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/message/send-text`, {

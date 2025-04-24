@@ -7,6 +7,13 @@ dotenv.config();
 import cors from 'cors';
 import multer from 'multer';
 import QRCode from 'qrcode';
+import PDFDocument from 'pdfkit';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Langsung masukkan nilai Supabase URL & Key
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -266,38 +273,39 @@ app.post('/send', async (req, res) => {
   }
 });
 
-// Endpoint baru: Generate PDF invoice dari data order, lalu kirim ke WhatsApp
+// Endpoint baru: Generate PDF invoice, simpan ke public/invoice, kirim pesan WA berisi ringkasan + link download
 app.post('/message/send-invoice', async (req, res) => {
-  const { sessionId, to, order, text } = req.body;
-  if (!sessionId || !to || !order) {
-    return res.status(400).json({ error: 'sessionId, to, and order are required' });
+  const { sessionId, to, orderId } = req.body;
+  if (!sessionId || !to || !orderId) {
+    return res.status(400).json({ error: 'sessionId, to, and orderId are required' });
   }
 
   try {
-    // --- Generate PDF invoice dari data order ---
-    // Contoh: gunakan pdfkit
-    const PDFDocument = require('pdfkit');
-    const getStream = require('get-stream');
-    const doc = new PDFDocument();
-    let buffers = [];
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', async () => {
-      const pdfBuffer = Buffer.concat(buffers);
-      try {
-        await whatsapp.sendDocument({
-          sessionId,
-          to,
-          filename: 'invoice.pdf',
-          media: pdfBuffer,
-          text: text || 'Invoice Order',
-        });
-        res.json({ success: true, message: 'Invoice sent' });
-      } catch (err) {
-        console.error('Error sending WhatsApp invoice:', err);
-        res.status(500).json({ error: 'Failed to send invoice', details: err.message });
-      }
-    });
-    // --- Isi konten invoice (contoh sederhana, bisa dikembangkan sesuai kebutuhan) ---
+    // Query order detail lengkap dari Supabase (beserta relasi customer, company, bank, batch, order_items, product)
+    const { data: order, error: orderErr } = await supabase
+      .from('orders')
+      .select(`*,
+        customer:customer_id(*),
+        company:company_id(*),
+        bank_account:bank_account_id(*),
+        batch:batch_id(*),
+        order_items(*, product:product_id(*))
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr || !order) {
+      return res.status(404).json({ error: 'Order not found', details: orderErr });
+    }
+
+    // --- Generate PDF invoice dan simpan ke public/invoice ---
+    const filename = `invoice_${orderId}.pdf`;
+    const invoiceDir = path.join(__dirname, 'public', 'invoice');
+    if (!fs.existsSync(invoiceDir)) fs.mkdirSync(invoiceDir, { recursive: true });
+    const filePath = path.join(invoiceDir, filename);
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    doc.pipe(fs.createWriteStream(filePath));
+    doc.font('Helvetica');
     doc.fontSize(20).text('INVOICE', { align: 'center' });
     doc.moveDown();
     doc.fontSize(12).text(`Invoice #: ${order.invoice_no || order.id}`);
@@ -312,12 +320,40 @@ app.post('/message/send-invoice', async (req, res) => {
     });
     doc.moveDown();
     doc.text(`Total: Rp${order.total_amount || 0}`);
+    doc.moveDown();
+    doc.text(`Transfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})`);
     doc.end();
+
+    // Setelah PDF selesai disimpan, kirim pesan WhatsApp (teks)
+    const domain = process.env.PUBLIC_DOMAIN || 'https://namadomain.com'; // Atur domain sesuai environment
+    const downloadUrl = `${domain}/invoice/${filename}`;
+    // Pesan WhatsApp lengkap
+    const message =
+      `Halo, berikut invoice order Anda.\n` +
+      `\n` +
+      `INVOICE\n` +
+      `Invoice #: ${order.invoice_no || order.id}\n` +
+      `Customer: ${order.customer?.name || '-'}\n` +
+      `Phone: ${order.customer?.phone || '-'}\n` +
+      `Address: ${order.customer?.address || '-'}\n` +
+      `Tanggal: ${(new Date()).toLocaleDateString('id-ID')}\n` +
+      `\n` +
+      `Produk:\n` +
+      (order.order_items || []).map((item, idx) => `${idx + 1}. ${item.product?.name || '-'} x${item.qty} @Rp${item.price}`).join('\n') +
+      `\nTotal: Rp${order.total_amount || 0}\n` +
+      `\nTransfer ke: ${order.bank_account?.bank_name || '-'} a.n ${order.bank_account?.account_name || '-'} (${order.bank_account?.account_number || '-'})\n` +
+      `\nDownload PDF: ${downloadUrl}`;
+
+    await whatsapp.sendTextMessage({ sessionId, to, text: message });
+    res.json({ success: true, message: 'Invoice link sent', url: downloadUrl });
   } catch (err) {
     console.error('Error generating invoice:', err);
     res.status(500).json({ error: 'Failed to generate invoice', details: err.message });
   }
 });
+
+// Endpoint statis untuk download PDF
+app.use('/invoice', express.static(path.join(__dirname, 'public', 'invoice')));
 
 // Jalankan server Express
 app.listen(port, () => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { askAI } from '../services/aiService';
 import { sendEmailViaWebhook } from '../services/emailWebhookService';
 import { getCustomerPhoneByName } from '../services/supabaseService';
+import { API_BASE_URL } from '../config';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -131,7 +132,7 @@ const AIChatWidget = () => {
               <button
                 onClick={async () => {
                   try {
-                    await fetch('https://wagt.satcoconut.com/send', {
+                    await fetch(`${API_BASE_URL}/send`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json'

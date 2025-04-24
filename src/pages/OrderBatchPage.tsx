@@ -500,7 +500,7 @@ const OrderPage: React.FC = () => {
 
   const fetchWaSessions = async () => {
     try {
-      const res = await fetch('https://wagt.satcoconut.com/whatsapp/sessions');
+      const res = await fetch(`${API_BASE_URL}/whatsapp/sessions`);
       if (!res.ok) return;
       // const data = await res.json();
     } catch (e) {}
@@ -882,8 +882,7 @@ const OrderPage: React.FC = () => {
           companies={companies}
           bankAccounts={bankAccounts}
           loading={loading}
-          onClose={resetForm}
-        />
+          onClose={resetForm} customers={[]}        />
 
         <QtyEditModal
           show={showQtyEditModal}

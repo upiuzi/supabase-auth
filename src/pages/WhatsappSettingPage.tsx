@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Navbar2 from '../components/Navbar2';
 import QRCode from 'react-qr-code';
+import { API_BASE_URL } from '../config';
 
-const BASE_URL = 'https://wagt.satcoconut.com'; // Ganti jika backend berjalan di host/port berbeda
+const BASE_URL = API_BASE_URL;
 
 // --- MULTI SESSION SUPPORT ---
 // Ambil daftar session dari backend
