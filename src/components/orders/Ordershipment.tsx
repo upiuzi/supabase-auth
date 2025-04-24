@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { toPng } from 'html-to-image';
 import { Customer, Batch } from '../../type/order';
 import { Order, Company, BankAccount } from '../../type/schema';
