@@ -13,7 +13,8 @@ import {
 } from '../services/supabaseService';
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
-import OrderTableShipment from '../components/orders/OrderTableShipment';
+import OrderShipment from '../components/orders/Ordershipment';
+// import OrderTableShipment from '../components/orders/OrderTableShipment';
 import OrderFormModal from '../components/orders/OrderFormModal';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
 import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
@@ -24,6 +25,7 @@ import TotalQtySection from '../components/orders/TotalQtySection';
 import BroadcastConfirmModal from '../components/orders/BroadcastConfirmModal';
 import { sendOrderConfirmBroadcast } from '../services/waService';
 import { Order, Batch, OrderItem, Company, BankAccount, Customer } from '../type/schema';
+import { API_BASE_URL } from '../config';
 
 // Extend jsPDF with autoTable plugin types
 declare module 'jspdf' {
@@ -79,6 +81,9 @@ const OrderPage: React.FC = () => {
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [broadcastBatchData, setBroadcastBatchData] = useState<{
+    payment_status: string;
+    total: string;
+    invoice_no: string;
     name: string;
     phone: string;
     product: string;
@@ -545,7 +550,60 @@ const OrderPage: React.FC = () => {
     setBroadcastLoading(false);
   };
 
+  const handleBroadcastBatchUnpaid = async (arrivalDate: string, session: string) => {
+    if (!broadcastBatchData.length) {
+      alert('Data broadcast kosong!');
+      return;
+    }
+    setBroadcastLoading(true);
+    for (const d of broadcastBatchData) {
+      // Pesan penagihan
+      const message = `Hallo ka ${d.name}, izin update untuk payment dengan invoice nomor ${d.invoice_no ?? '-'} dengan total tagihan ${d.total ?? '-'} kapan di proses ya?\n\nTerima kasih`;
+      try {
+        await sendOrderConfirmBroadcast({
+          to: d.phone,
+          message,
+          session,
+        });
+      } catch (e) {}
+    }
+    setBroadcastLoading(false);
+  };
+
   console.log('DEBUG broadcastBatchData di render:', broadcastBatchData);
+
+  // Add this function to fetch broadcast batch data for review
+  const fetchBroadcastBatchData = async () => {
+    try {
+      setBroadcastLoading(true);
+      // Use API_BASE_URL from config
+      const res = await fetch(`${API_BASE_URL}/api/databroadcastbatch/${batchid}`);
+      if (!res.ok) throw new Error('Failed to fetch broadcast batch data');
+      const data = await res.json();
+      setBroadcastBatchData(data);
+      setShowBroadcastConfirm(true);
+    } catch (e) {
+      alert('Gagal mengambil data broadcast batch: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBroadcastLoading(false);
+    }
+  };
+
+  // Fetch unpaid broadcast batch data for review
+  const fetchBroadcastBatchDataUnpaid = async () => {
+    try {
+      setBroadcastLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/databroadcastbatch_unpaid/${batchid}`);
+      if (!res.ok) throw new Error('Failed to fetch broadcast batch data (unpaid)');
+      const data = await res.json();
+      setBroadcastBatchData(data);
+      setShowBroadcastConfirm(true);
+    } catch (e) {
+      alert('Gagal mengambil data broadcast batch (unpaid): ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBroadcastLoading(false);
+    }
+  };
 
   // --- SUMMARY SECTION: TotalQtySection ---
   return (
@@ -556,7 +614,7 @@ const OrderPage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold">
               Orders
-              {batchid && batches.find(b => b.id === batchid) ? ` - ${batches.find(b => b.id === batchid)?.name || batches.find(b => b.id === batchid)?.batch_id}` : ''}
+              {batchid && batches.find(b => b.id === batchid) ? ` - ${batches.find(b => b.id === batchid)?.batch_name || batches.find(b => b.id === batchid)?.batch_id}` : ''}
             </h1>
             <p className="text-gray-600 mt-1">Manage customer orders and batch allocations</p>
           </div>
@@ -590,6 +648,13 @@ const OrderPage: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
               Broadcast Review
+            </button>
+            <button
+              onClick={fetchBroadcastBatchDataUnpaid}
+              disabled={broadcastLoading}
+              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 disabled:bg-yellow-300 ml-2"
+            >
+              Broadcast Review (Unpaid Only)
             </button>
           </div>
         </div>
@@ -659,11 +724,58 @@ const OrderPage: React.FC = () => {
         {loading ? (
           <div className="text-center text-gray-600">Loading...</div>
         ) : activeTab === 'shipment' ? (
-          <OrderTableShipment
-            orders={filteredOrders}
-            batches={batches}
-            loading={loading}
-          />
+          <div>
+            <OrderShipment
+          key={activeTab}
+          orders={orders}
+          filteredOrders={filteredOrders}
+          customers={customers}
+          batches={batches}
+          companies={companies}
+          bankAccounts={bankAccounts}
+          loading={loading}
+          selectedOrders={selectedOrders}
+          itemsPerPage={itemsPerPage}
+          currentPage={currentPage}
+          tableType={activeTab}
+          onSelectOrder={handleSelectOrder}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(items) => {
+            setItemsPerPage(items);
+            setCurrentPage(1);
+          }}
+          onViewDetails={(order) => {
+            setOrderToView(order);
+            setShowDetailModal(true);
+          }}
+          onEditOrder={(order) => {
+            setOrderToEdit(order);
+            setFormData({
+              customer_id: order.customer_id,
+              batch_id: order.batch_id,
+              company_id: order.company_id,
+              bank_account_id: order.bank_account_id,
+              status: order.status,
+              expedition: order.expedition || '',
+              description: order.description || '',
+              order_items: order.order_items?.map((item) => ({
+                product_id: item.product_id,
+                qty: item.qty,
+                price: item.price,
+              })) || [],
+            });
+            setShowEditModal(true);
+          }}
+          onDeleteOrder={(orderId) => {
+            setOrderToDelete(orderId);
+            setShowDeleteConfirm(true);
+          }}
+          onEditShipment={(order) => {
+            setOrderToEditShipment(order);
+            setShowShipmentEditModal(true);
+          }}
+        /></div>
+
         ) : filteredOrders.length === 0 ? (
           <div className="text-center text-gray-600">No orders available.</div>
         ) : (
@@ -837,10 +949,9 @@ const OrderPage: React.FC = () => {
         <BroadcastConfirmModal
           show={showBroadcastConfirm}
           onClose={() => setShowBroadcastConfirm(false)}
-          onSend={handleBroadcastBatch}
-          sessions={waSessions}
-          loading={broadcastLoading}
-        />
+          onSend={broadcastBatchData?.[0]?.payment_status === 'unpaid' ? handleBroadcastBatchUnpaid : handleBroadcastBatch}
+          data={broadcastBatchData}
+          loading={broadcastLoading} sessions={[]}        />
       </div>
     </div>
   );

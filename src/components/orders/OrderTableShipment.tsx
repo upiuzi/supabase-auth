@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
-import { Order, Batch, Product } from '../../type/schema';
+import { Order, Batch, Product, Customer } from '../../type/schema';
 import { toPng } from 'html-to-image';
 import { updateOrder } from '../../services/supabaseService';
 
 interface OrderTableShipmentProps {
   orders: Order[];
+  filteredOrders: Order[];
+  customers: Customer[];
   batches: Batch[];
   loading: boolean;
   products?: Product[];
+  itemsPerPage?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
-const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, batches, loading, products = [] }) => {
+const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({
+  filteredOrders,
+  customers,
+  batches,
+  loading,
+  products = [],
+  itemsPerPage = 10,
+  currentPage = 1,
+  onPageChange
+}) => {
+  const ordersToShow = filteredOrders || [];
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = ordersToShow.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(ordersToShow.length / itemsPerPage);
+
   const getBatchId = (batchId: string) => batches.find(b => b.id === batchId)?.batch_id || '-';
   const getInvoiceId = (order: Order) => order.invoice_no || order.id;
   const getProductName = (productId: string) => products.find(p => p.id === productId)?.name || productId;
@@ -107,10 +127,10 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, batches
         <tbody className="text-gray-900">
           {loading ? (
             <tr><td colSpan={11} className="text-center py-4 text-gray-600">Loading...</td></tr>
-          ) : orders.length === 0 ? (
+          ) : currentItems.length === 0 ? (
             <tr><td colSpan={11} className="text-center py-4 text-gray-600">No orders available.</td></tr>
           ) : (
-            orders.map(order => (
+            currentItems.map(order => (
               <tr key={order.id} className="bg-white border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-2">{getInvoiceId(order)}</td>
                 <td className="px-4 py-2">{getBatchId(order.batch_id)}</td>
@@ -171,6 +191,31 @@ const OrderTableShipment: React.FC<OrderTableShipmentProps> = ({ orders, batches
           )}
         </tbody>
       </table>
+      <div className="flex justify-center mt-4">
+        <button
+          className="bg-gray-300 text-gray-800 px-2 py-1 rounded mr-2"
+          onClick={() => onPageChange && onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+        >
+          Prev
+        </button>
+        {[...Array(totalPages).keys()].map(page => (
+          <button
+            key={page}
+            className={`bg-gray-300 text-gray-800 px-2 py-1 rounded mr-2 ${currentPage === page + 1 ? 'bg-blue-500 text-white' : ''}`}
+            onClick={() => onPageChange && onPageChange(page + 1)}
+          >
+            {page + 1}
+          </button>
+        ))}
+        <button
+          className="bg-gray-300 text-gray-800 px-2 py-1 rounded"
+          onClick={() => onPageChange && onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

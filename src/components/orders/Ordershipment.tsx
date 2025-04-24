@@ -3,7 +3,7 @@ import { toPng } from 'html-to-image';
 import { Customer, Batch } from '../../type/order';
 import { Order, Company, BankAccount } from '../../type/schema';
 
-interface OrderTableProps {
+interface OrderShipment {
   key?: 'orders' | 'shipment'; // Optional key prop
   orders: Order[]; // Added missing orders prop
   filteredOrders: Order[];
@@ -26,7 +26,7 @@ interface OrderTableProps {
   batchTitle?: string; // Added batchTitle prop
 }
 
-const OrderTable: React.FC<OrderTableProps> = ({
+const OrderTable: React.FC<OrderShipment> = ({
   filteredOrders,
   customers,
   batches,
@@ -48,6 +48,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   const tableRef = useRef<HTMLDivElement>(null);
   const [sortByExpedition, setSortByExpedition] = useState(false);
+  const [editedOrders, setEditedOrders] = useState<Record<string, Partial<Order>>>({});
 
   const handleExportToPNG = async () => {
     const tableElement = document.getElementById('order-table');
@@ -72,6 +73,11 @@ const OrderTable: React.FC<OrderTableProps> = ({
     return customer ? customer.name : '-';
   };
 
+  const getCustomerAddress = (customerId: string) => {
+    const customer = customers.find((c) => c.id === customerId);
+    return customer ? customer.address ?? '-' : '-';
+  };
+
   const getProductName = (productId: string, batchId: string) => {
     const batch = batches.find((b) => b.id === batchId);
     if (batch && batch.batch_products) {
@@ -94,6 +100,22 @@ const OrderTable: React.FC<OrderTableProps> = ({
 
   const handleSortByExpedition = () => {
     setSortByExpedition(!sortByExpedition);
+  };
+
+  const handleExpeditionChange = (orderId: string, value: string) => {
+    setEditedOrders((prev) => ({
+      ...prev,
+      [orderId]: { ...prev[orderId], expedition: value },
+    }));
+    // Optionally, update to backend here
+  };
+
+  const handleDescriptionChange = (orderId: string, value: string) => {
+    setEditedOrders((prev) => ({
+      ...prev,
+      [orderId]: { ...prev[orderId], description: value },
+    }));
+    // Optionally, update to backend here
   };
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -218,13 +240,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
               <th className="py-3 px-4 w-16 font-semibold text-gray-700"> </th>
               <th className="py-3 px-4 font-semibold text-gray-700">Invoice No</th>
               <th className="py-3 px-4 font-semibold text-gray-700">Customer</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Customer Address</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Expedition</th>
               <th className="py-3 px-4 font-semibold text-gray-700">Product</th>
-              <th className="py-3 px-4 text-right font-semibold text-gray-700">Qty (kg)</th>
-              <th className="py-3 px-4 text-right font-semibold text-gray-700">Price</th>
-              <th className="py-3 px-4 text-right font-semibold text-gray-700">Amount</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Jerigen</th>
+              <th className="py-3 px-4 font-semibold text-gray-700">Description</th>
               <th className="py-3 px-4 font-semibold text-gray-700">Status</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Payment</th>
-              <th className="py-3 px-4 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -236,7 +257,6 @@ const OrderTable: React.FC<OrderTableProps> = ({
               currentItems.map((order) => {
                 const orderItems = order.order_items || [];
                 const rowSpan = orderItems.length > 0 ? orderItems.length : 1;
-                const totalAmount = getTotalAmount(order);
                 return orderItems.length === 0 ? (
                   <tr key={order.id} className="border-b border-gray-100 bg-white">
                     <td className="py-4 px-4" rowSpan={1}>
@@ -244,13 +264,18 @@ const OrderTable: React.FC<OrderTableProps> = ({
                     </td>
                     <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getInvoiceNo(order)}</td>
                     <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerName(order.customer_id)}</td>
-                    <td className="py-4 px-4 text-gray-900">-</td>
+                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>{getCustomerAddress(order.customer_id)}</td>
+                    <td className="py-4 px-4 text-gray-900" rowSpan={1}>
+                      <input
+                        className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
+                        value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
+                        onChange={(e) => handleExpeditionChange(order.id, e.target.value)}
+                        disabled={loading}
+                      />
+                    </td>
                     <td className="py-4 px-4 text-right">-</td>
-                    <td className="py-4 px-4 text-right">-</td>
-                    <td className="py-4 px-4 text-right">Rp {totalAmount.toLocaleString('id-ID')}</td>
+                    <td className="py-4 px-4">{order.description || '-'}</td>
                     <td className="py-4 px-4">{order.status}</td>
-                    <td className="py-4 px-4">{order.payment_status || '-'}</td>
-                    <td className="py-4 px-4"></td>
                   </tr>
                 ) : (
                   orderItems.map((item) => (
@@ -262,46 +287,38 @@ const OrderTable: React.FC<OrderTableProps> = ({
                           </td>
                           <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getInvoiceNo(order)}</td>
                           <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerName(order.customer_id)}</td>
+                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>{getCustomerAddress(order.customer_id)}</td>
+                          <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>
+                            <input
+                              className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
+                              value={editedOrders[order.id]?.expedition ?? order.expedition ?? ''}
+                              onChange={(e) => handleExpeditionChange(order.id, e.target.value)}
+                              disabled={loading}
+                            />
+                          </td>
                         </>
                       )}
                       <td className="py-4 px-4 text-gray-900 align-top">{getProductName(item.product_id, order.batch_id)}</td>
-                      <td className="py-4 px-4 text-right align-top">{item.qty}</td>
-                      <td className="py-4 px-4 text-right align-top">Rp {item.price.toLocaleString('id-ID')}</td>
-                      <td className="py-4 px-4 text-right align-top">Rp {(item.qty * item.price).toLocaleString('id-ID')}</td>
+                      <td className="py-4 px-4 text-right align-top">{(item.qty / 19).toFixed(2)}</td>
                       {item.product_id === orderItems[0].product_id && (
-                        <>
-                          <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
-                          <td className="py-4 px-4" rowSpan={rowSpan}>{order.payment_status || '-'}</td>
-                        </>
+                        <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>
+                          <input
+                            className="w-full px-2 py-1 rounded border border-gray-300 text-gray-900 bg-white"
+                            value={editedOrders[order.id]?.description ?? order.description ?? ''}
+                            onChange={(e) => handleDescriptionChange(order.id, e.target.value)}
+                            disabled={loading}
+                          />
+                        </td>
                       )}
-                      <td className="py-4 px-4" rowSpan={rowSpan}>
-                        {/* ...actions... */}
-                        <div className="group inline-block">
-                          <button className="text-gray-700 hover:text-blue-400 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
-                          </button>
-                          <div className="absolute right-0 z-10 hidden group-hover:block bg-white border border-gray-200 rounded shadow-lg min-w-[120px]">
-                            <button onClick={() => onViewDetails(order)} className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 hover:text-blue-400">View Details</button>
-                            <button onClick={() => onEditOrder(order)} className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 hover:text-green-400">Edit</button>
-                            <button onClick={() => onDeleteOrder(order.id)} className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-100 hover:text-red-600">Delete</button>
-                            <button onClick={() => onEditShipment(order)} className="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-gray-100 hover:text-yellow-600">Edit Shipment</button>
-                          </div>
-                        </div>
-                      </td>
+                      <td className="py-4 px-4" rowSpan={rowSpan}>{order.status}</td>
                     </tr>
                   ))
                 );
               })
             )}
             <tr className="border-t border-gray-200 font-bold bg-gray-50">
-              <td colSpan={4} className="py-4 px-4 text-right">Total</td>
-              <td colSpan={2} className="py-4 px-4 text-right">Rp</td>
-              <td className="py-4 px-4 text-right">{getOverallTotalAmount().toLocaleString('id-ID')}</td>
-              <td className="py-4 px-4"></td>
-              <td className="py-4 px-4"></td>
-              <td colSpan={2}></td>
+              <td colSpan={6} className="py-4 px-4 text-right">Total</td>
+              <td colSpan={4} className="py-4 px-4"></td>
             </tr>
           </tbody>
         </table>

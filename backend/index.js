@@ -542,7 +542,10 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
       .from('orders')
       .select(`
         id,
-        customer:customer_id (name, phone),
+        expedition,
+        description,
+        payment_status,
+        customer:customer_id (name, phone, address),
         order_items:order_items (
           qty, price,
           product:product_id (name)
@@ -558,10 +561,13 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
         result.push({
           name: order.customer?.name || '',
           phone: order.customer?.phone || '',
+          address: order.customer?.address || '',
+          expedition: order.expedition || '',
+          description: order.description || '',
+          payment_status: order.payment_status || '',
           product: item.product?.name || '',
           qty: item.qty,
           price: item.price
-         
         });
       });
     });
@@ -571,7 +577,55 @@ app.get('/api/databroadcastbatch/:batch_id', async (req, res) => {
     res.status(500).json({ error: err.message || err });
   }
 });
-// --- END MULTI SESSION SUPPORT ---
+
+// Endpoint: Ambil data broadcast batch dengan filter payment_status=unpaid
+app.get('/api/databroadcastbatch_unpaid/:batch_id', async (req, res) => {
+  const { batch_id } = req.params;
+  try {
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        invoice_no,
+        expedition,
+        description,
+        payment_status,
+        customer:customer_id (name, phone, address),
+        order_items:order_items (
+          qty, price,
+          product:product_id (name)
+        )
+      `)
+      .eq('batch_id', batch_id)
+      .eq('payment_status', 'unpaid');
+    if (ordersError) throw ordersError;
+    const result = [];
+    orders.forEach(order => {
+      let total = 0;
+      (order.order_items || []).forEach(item => {
+        total += (item.qty || 0) * (item.price || 0);
+      });
+      (order.order_items || []).forEach(item => {
+        result.push({
+          name: order.customer?.name || '',
+          phone: order.customer?.phone || '',
+          address: order.customer?.address || '',
+          expedition: order.expedition || '',
+          description: order.description || '',
+          payment_status: order.payment_status || '',
+          product: item.product?.name || '',
+          qty: item.qty,
+          price: item.price,
+          invoice_no: order.invoice_no || order.id,
+          total
+        });
+      });
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
 
 // Endpoint: Ambil data customer (id, name, city)
 app.get('/api/customers', async (req, res) => {
