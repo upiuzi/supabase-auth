@@ -341,7 +341,7 @@ const OrderTable: React.FC<OrderShipment> = ({
                         </>
                       )}
                       <td className="py-4 px-4 text-gray-900 align-top">{getProductName(item.product_id, order.batch_id)}</td>
-                      <td className="py-4 px-4 text-right align-top">{(item.qty / 19).toFixed(2)}</td>
+                      <td className="py-4 px-4 text-right align-top">{Math.floor(item.qty / 19)}</td>
                       {item.product_id === orderItems[0].product_id && (
                         <td className="py-4 px-4 text-gray-900" rowSpan={rowSpan}>
                           <input
