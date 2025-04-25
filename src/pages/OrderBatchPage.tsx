@@ -14,7 +14,7 @@ import {
 import Navbar2 from '../components/Navbar2';
 import OrderTable from '../components/orders/OrderTable';
 import OrderShipment from '../components/orders/Ordershipment';
-import OrderFormModal from '../components/orders/OrderFormModal';
+import OrderFormModalBatch from '../components/orders/OrderFormModalBatch';
 import OrderDetailModal from '../components/orders/OrderDetailModal';
 import DeleteConfirmModal from '../components/orders/DeleteConfirmModal';
 import QtyEditModal from '../components/orders/QtyEditModal';
@@ -103,6 +103,8 @@ const OrderPage: React.FC = () => {
     description: '',
   });
 
+  const [batchLabel, setBatchLabel] = useState('');
+
   const { batchid } = useParams();
 
   useEffect(() => {
@@ -130,6 +132,11 @@ const OrderPage: React.FC = () => {
   useEffect(() => {
     if (showBroadcastConfirm) fetchWaSessions();
   }, [showBroadcastConfirm]);
+
+  useEffect(() => {
+    const selectedBatch = batches.find((b) => b.id === formData.batch_id);
+    setBatchLabel(selectedBatch ? `${selectedBatch.batch_id}${selectedBatch.name ? ' - ' + selectedBatch.name : ''}` : '');
+  }, [formData.batch_id, batches]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -334,6 +341,7 @@ const OrderPage: React.FC = () => {
       await fetchOrders();
       await fetchBatches();
       resetForm();
+      setBatchLabel(""); // Reset batchLabel
     } catch (error: any) {
       console.error('Error creating/updating order:', error);
       alert('Failed to create/update order: ' + (error.message || 'Unknown error'));
@@ -606,6 +614,8 @@ const OrderPage: React.FC = () => {
   };
 
   // --- SUMMARY SECTION: TotalQtySection ---
+  const selectedBatch = batches.find((b) => b.id === formData.batch_id);
+
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{backgroundColor: '#f3f4f6'}}>
       <Navbar2 />
@@ -680,7 +690,7 @@ const OrderPage: React.FC = () => {
                       <span className="inline-block w-4 h-4 mr-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                      </svg>
                       </span>
                       Broadcast Tagihan
                     </button>
@@ -865,14 +875,14 @@ const OrderPage: React.FC = () => {
           </div>
         </div>
 
-        <OrderFormModal
+        <OrderFormModalBatch
           show={showModal || showEditModal}
           loading={loading}
           formData={formData}
           batches={batches}
           companies={companies}
           bankAccounts={bankAccounts}
-          customers={customers} // Pass customers prop here
+          customers={customers}
           isEdit={showEditModal}
           onClose={resetForm}
           onSubmit={handleSubmit}
@@ -880,6 +890,7 @@ const OrderPage: React.FC = () => {
           onOrderItemChange={handleOrderItemChange}
           onAddOrderItem={handleAddOrderItem}
           onRemoveOrderItem={handleRemoveOrderItem}
+          batchLabel={batchLabel}
         />
 
         <DeleteConfirmModal
@@ -897,7 +908,7 @@ const OrderPage: React.FC = () => {
           bankAccounts={bankAccounts}
           loading={loading}
           onClose={resetForm}
-          customers={customers} // Ubah dari [] menjadi customers
+          customers={customers}
         />
 
         <QtyEditModal

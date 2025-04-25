@@ -765,3 +765,7 @@ app.get('/api/customers', async (req, res) => {
     res.status(500).json({ error: err.message || err });
   }
 });
+
+// Tambah routing ke file manager
+const fileManagerRouter = require('./filemanager');
+app.use('/api/files', fileManagerRouter);
