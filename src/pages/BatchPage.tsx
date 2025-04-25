@@ -30,10 +30,12 @@ const BatchPage = () => {
     batch_id: string;
     status: 'active' | 'sold_out' | 'cancelled';
     products: BatchProduct[];
+    finish_date?: string | null;
   }>({
     batch_id: '',
     status: 'active',
     products: [],
+    finish_date: null,
   });
 
   const navigate = useNavigate();
@@ -123,6 +125,13 @@ const BatchPage = () => {
     });
   };
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      finish_date: e.target.value ? new Date(e.target.value).toISOString() : null,
+    });
+  };
+
   const handleProductChange = (
     index: number,
     field: keyof BatchProduct,
@@ -196,7 +205,8 @@ const BatchPage = () => {
             batch_id: formData.batch_id,
             status: formData.status,
             created_at: '',
-            batch_name: undefined
+            batch_name: undefined,
+            finish_date: formData.finish_date,
           },
           formData.products
         );
@@ -225,6 +235,7 @@ const BatchPage = () => {
         initial_qty: bp.initial_qty,
         remaining_qty: bp.remaining_qty,
       })) : [],
+      finish_date: batch.finish_date || null,
     });
     setShowModal(true);
   };
@@ -255,6 +266,7 @@ const BatchPage = () => {
       batch_id: '',
       status: 'active',
       products: [],
+      finish_date: null,
     });
   };
 
@@ -341,34 +353,6 @@ const BatchPage = () => {
                 className="bg-white p-6 rounded-xl shadow-lg ring-1 ring-gray-200 hover:ring-blue-200 transition-shadow duration-150 relative"
               >
                 <div className="flex flex-col justify-between h-full p-0">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold">
-                        Batch #{batch.batch_id}
-                      </h3>
-                    </div>
-                    {batch.batch_products && batch.batch_products.length > 0 ? (
-                      batch.batch_products.map((bp, index) => (
-                        <div key={index} className="mb-2">
-                          <p className="text-gray-600">{getProductName(bp.product_id)}</p>
-                          <div className="w-full bg-gray-200 rounded-full h-2.5">
-                            <div
-                              className="bg-blue-500 h-2.5 rounded-full"
-                              style={{ width: `${(bp.remaining_qty / bp.initial_qty) * 100}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {bp.remaining_qty} / {bp.initial_qty}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-600">No products</p>
-                    )}
-                  </div>
-                  <div className="mt-auto flex justify-center pt-2">
-                    <span className={`px-5 py-2 text-base font-bold rounded-full ${getBatchStatusColor(batch)}`}>{getBatchStatus(batch)}</span>
-                  </div>
                   <div className="absolute top-4 right-4 flex gap-2">
                     <button
                       onClick={(e) => {
@@ -419,6 +403,41 @@ const BatchPage = () => {
                       </svg>
                     </button>
                   </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-semibold">
+                        Batch #{batch.batch_id}
+                      </h3>
+                    </div>
+                    {batch.batch_products && batch.batch_products.length > 0 ? (
+                      batch.batch_products.map((bp, index) => (
+                        <div key={index} className="mb-2">
+                          <p className="text-gray-600">{getProductName(bp.product_id)}</p>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div
+                              className="bg-blue-500 h-2.5 rounded-full"
+                              style={{ width: `${(bp.remaining_qty / bp.initial_qty) * 100}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {bp.remaining_qty} / {bp.initial_qty}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600">No products</p>
+                    )}
+                  </div>
+                  <div className="mt-auto flex justify-center pt-2">
+                    <span className={`px-5 py-2 text-base font-bold rounded-full ${getBatchStatusColor(batch)}`}>{getBatchStatus(batch)}</span>
+                  </div>
+                  <div className="flex flex-col text-xs text-gray-500 mt-2">
+                    <span>Batch ID: {batch.batch_id}</span>
+                    <span>Status: {batch.status}</span>
+                    {batch.finish_date && (
+                      <span>Finish Date: {new Date(batch.finish_date).toLocaleDateString()}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -457,6 +476,16 @@ const BatchPage = () => {
                     <option value="sold_out">Sold Out</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1 text-gray-600">Finish Date</label>
+                  <input
+                    type="date"
+                    name="finish_date"
+                    value={formData.finish_date ? formData.finish_date.slice(0, 10) : ''}
+                    onChange={handleDateChange}
+                    className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
 
                 <div className="mb-4">

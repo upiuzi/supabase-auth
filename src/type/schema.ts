@@ -86,6 +86,7 @@ export interface Batch {
   batch_id: string;
   status: 'active' | 'sold_out' | 'cancelled';
   created_at: string;
+  finish_date?: string | null;
   batch_products?: BatchProduct[];
   orders?: Order[];
 }

@@ -500,6 +500,7 @@ export const createBatch = async (
       batch_id: batch.batch_id,
       created_at: new Date().toISOString(),
       status: batch.status,
+      finish_date: batch.finish_date ?? null,
     }])
     .select()
     .single();
@@ -531,6 +532,7 @@ export const updateBatch = async (
       .update({
         batch_id: batch.batch_id,
         status: batch.status,
+        finish_date: batch.finish_date ?? null,
       })
       .eq('id', id);
 

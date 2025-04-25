@@ -9,6 +9,7 @@ export interface Batch {
     id: string;
     batch_id: string;
     batch_products?: BatchProduct[];
+    finish_date?: string | null;
 }
 
 export interface BatchProduct {
