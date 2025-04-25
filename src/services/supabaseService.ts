@@ -784,6 +784,7 @@ export const updateOrder = async (
         expedition: order.expedition,
         description: order.description,
         total_amount: totalAmount,
+        ...(order.created_at ? { created_at: order.created_at } : {})
       })
       .eq('id', id);
 

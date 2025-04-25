@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getProducts, getBatches, Product, Batch } from '../services/supabaseService';
+import { getCustomers } from '../services/customerService';
 import Navbar2 from '../components/Navbar2';
 import {
   Chart as ChartJS,
@@ -38,6 +39,9 @@ const ReportSales = () => {
   const [loading, setLoading] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailData, setDetailData] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -46,16 +50,15 @@ const ReportSales = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [productsData, batchesData] = await Promise.all([
+      const [productsData, batchesData, customersData] = await Promise.all([
         getProducts(),
-        getBatches()
+        getBatches(),
+        getCustomers()
       ]);
-      
-      // setProducts(productsData);
-      // setBatches(batchesData);
-      
+      setCustomers(customersData);
       const salesData = calculateMonthlySales(productsData, batchesData);
       setMonthlyData(salesData);
+      setDetailData(calculateDetailData(productsData, batchesData, customersData));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -109,6 +112,38 @@ const ReportSales = () => {
     return salesData.filter(product => product.grand_total > 0);
   };
 
+  const calculateDetailData = (products: Product[], batches: Batch[], customers: any[]) => {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    const map: Record<string, any> = {};
+    batches.forEach(batch => {
+      if (batch.orders && batch.orders.length > 0) {
+        batch.orders.forEach(order => {
+          const orderDate = new Date(order.created_at);
+          if (orderDate.getFullYear() === selectedYear) {
+            const month = months[orderDate.getMonth()];
+            const customerObj = customers.find(c => c.id === order.customer_id);
+            const customer = customerObj?.name || order.customer_id || '-';
+            if (order.order_items && order.order_items.length > 0) {
+              order.order_items.forEach(item => {
+                const product = products.find(p => p.id === item.product_id);
+                if (!product) return;
+                const key = `${customer}_${product.name}`;
+                if (!map[key]) {
+                  map[key] = { customer, product: product.name };
+                  months.forEach(m => { map[key][m] = 0; });
+                }
+                map[key][month] += item.qty;
+              });
+            }
+          }
+        });
+      }
+    });
+    return Object.values(map);
+  };
 
   const getTotalForMonth = (month: string) => {
     return monthlyData.reduce((sum, product) => sum + product.monthly_revenue[month], 0);
@@ -150,7 +185,7 @@ const ReportSales = () => {
         {loading ? (
           <div className="text-center text-gray-600">Loading...</div>
         ) : (
-            <div className="space-y-8">
+          <div className="space-y-8">
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white rounded-lg">
                 <thead>
@@ -195,6 +230,40 @@ const ReportSales = () => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+            <div className="mt-6">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => setShowDetail(v => !v)}
+              >
+                {showDetail ? 'Sembunyikan' : 'Lihat'} Detail Qty per Customer/Bulan/Produk
+              </button>
+              {showDetail && (
+                <div className="overflow-x-auto mt-4">
+                  <table className="min-w-full bg-white rounded-lg">
+                    <thead>
+                      <tr className="text-gray-700 text-left">
+                        <th className="py-3 px-4">Customer</th>
+                        <th className="py-3 px-4">Produk</th>
+                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
+                          <th key={month} className="py-3 px-4 text-center">{month}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detailData.map((row, idx) => (
+                        <tr key={idx} className="border-t border-gray-200 hover:bg-gray-100">
+                          <td className="py-3 px-4">{row.customer}</td>
+                          <td className="py-3 px-4">{row.product}</td>
+                          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => (
+                            <td key={month} className="py-3 px-4 text-center">{row[month] || 0}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
