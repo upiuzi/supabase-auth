@@ -1,7 +1,12 @@
-const express = require('express');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = express.Router();
 
 const FILES_ROOT = path.join(__dirname, '../files');
@@ -100,4 +105,4 @@ router.post('/mkdir', (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = router;
+export default router;

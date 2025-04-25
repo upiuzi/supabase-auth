@@ -2,38 +2,24 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Batch } from '../../type/order';
-import { Order, Company, BankAccount, PaymentLog, Customer } from '../../type/schema';
+import { Order, PaymentLog } from '../../type/schema';
 import { useState, useEffect } from 'react';
-import { createPaymentLog, getPaymentLogsByOrderId, updateBankAccount } from '../../services/supabaseService';
-import supabase from '../../supabase';
-import { API_BASE_URL } from '../../config';
+import { createPaymentLog, getPaymentLogsByOrderId } from '../../services/supabaseService';
 
 interface OrderDetailModalBatchProps {
-  show: boolean;
   order: Order | null;
   batches: Batch[];
-  companies: Company[];
-  bankAccounts: BankAccount[];
-  customers: Customer[];
-  loading: boolean;
   onClose: () => void;
-  selectedBatchId: string; // batch yang dipilih dari OrderBatchPage
+  selectedBatchId: string;
 }
 
 const OrderDetailModalBatch: React.FC<OrderDetailModalBatchProps> = ({
-  show,
   order,
   batches,
-  companies,
-  bankAccounts,
-  customers = [],
-  loading,
   onClose,
   selectedBatchId,
 }) => {
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [selectedBankAccount, setSelectedBankAccount] = useState<BankAccount | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
@@ -50,44 +36,26 @@ const OrderDetailModalBatch: React.FC<OrderDetailModalBatchProps> = ({
   const handlePrint = () => {
     const doc = new jsPDF();
     doc.autoTable({
-      head: [['No', 'Tanggal', 'Jumlah', 'Metode', 'Catatan']],
+      head: [['No', 'Tanggal', 'Jumlah', 'Catatan']],
       body: paymentLogs.map((log, index) => [
         index + 1,
-        log.createdAt,
+        log.created_at,
         log.amount,
-        log.method,
-        log.note,
+        log.notes,
       ]),
     });
     doc.save('payment_logs.pdf');
   };
 
   const handleCreatePaymentLog = () => {
-    if (order && selectedCompany && selectedBankAccount) {
-      createPaymentLog({
-        order_id: order.id,
-        company_id: selectedCompany.id,
-        bank_account_id: selectedBankAccount.id,
-        amount: paymentAmount,
-        method: paymentMethod,
-        date: paymentDate,
-        note,
-      }).then((data) => {
-        setPaymentLogs((prevLogs) => [...prevLogs, data]);
+    if (order) {
+      // createPaymentLog kemungkinan return void, jadi tidak perlu if (data)
+      createPaymentLog(order.id, paymentAmount, paymentDate, paymentMethod, note).then(() => {
+        setPaymentLogs((prevLogs) => [...prevLogs]); // Jika ingin fetch ulang, bisa fetchPaymentLogs ulang
         setPaymentAmount(0);
         setPaymentMethod('');
         setPaymentDate('');
         setNote('');
-      });
-    }
-  };
-
-  const handleUpdateBankAccount = () => {
-    if (selectedBankAccount) {
-      updateBankAccount(selectedBankAccount.id, {
-        balance: selectedBankAccount.balance + paymentAmount,
-      }).then((data) => {
-        setSelectedBankAccount(data);
       });
     }
   };
@@ -104,8 +72,7 @@ const OrderDetailModalBatch: React.FC<OrderDetailModalBatchProps> = ({
       <div>
         <h3>Informasi Order</h3>
         <p>No. Order: {order?.id}</p>
-        <p>Tanggal: {order?.createdAt}</p>
-        <p>Total: {order?.total}</p>
+        <p>Tanggal: {order?.created_at}</p>
 
         <h3>Batch</h3>
         <select>
@@ -123,7 +90,6 @@ const OrderDetailModalBatch: React.FC<OrderDetailModalBatchProps> = ({
               <th>No</th>
               <th>Tanggal</th>
               <th>Jumlah</th>
-              <th>Metode</th>
               <th>Catatan</th>
             </tr>
           </thead>
@@ -131,10 +97,9 @@ const OrderDetailModalBatch: React.FC<OrderDetailModalBatchProps> = ({
             {paymentLogs.map((log, index) => (
               <tr key={log.id}>
                 <td>{index + 1}</td>
-                <td>{log.createdAt}</td>
+                <td>{log.created_at}</td>
                 <td>{log.amount}</td>
-                <td>{log.method}</td>
-                <td>{log.note}</td>
+                <td>{log.notes}</td>
               </tr>
             ))}
           </tbody>

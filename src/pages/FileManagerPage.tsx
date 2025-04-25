@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 
-const API_URL = '/api/files';
+const API_URL = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api/files` : '/api/files';
 
 export default function FileManagerPage() {
   const [files, setFiles] = useState<string[]>([]);
@@ -15,8 +15,8 @@ export default function FileManagerPage() {
 
   const fetchList = async (folder = '') => {
     const res = await axios.get(`${API_URL}/list`, { params: { folder } });
-    setFiles(res.data.files);
-    setFolders(res.data.folders);
+    setFiles(Array.isArray(res.data.files) ? res.data.files : []);
+    setFolders(Array.isArray(res.data.folders) ? res.data.folders : []);
     setCurrentFolder(folder);
     setSelectedFile(null);
     setPreviewUrl(null);
@@ -75,7 +75,7 @@ export default function FileManagerPage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-3xl mx-auto bg-white text-gray-900 min-h-screen">
       <h1 className="text-2xl font-bold mb-4">File Manager</h1>
       <div className="mb-2 flex gap-2 items-center">
         <button className="px-2 py-1 bg-gray-200 rounded" onClick={goUp} disabled={!currentFolder}>⬆️ Up</button>

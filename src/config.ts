@@ -12,8 +12,5 @@ if (!import.meta.env.VITE_SUPABASE_URL) {
 export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-// API Base URL config
-export const API_BASE_URL =
-  window.location.hostname === 'localhost'
-    ? 'https://wagt.satcoconut.com' 
-    : 'http://localhost:3331';
+// Pastikan API_BASE_URL diambil dari env dan fallback ke https://wagt.satcoconut.com jika belum ada
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://wagt.satcoconut.com";

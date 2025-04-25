@@ -12,6 +12,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
+import fileManagerRouter from './filemanager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -767,5 +768,4 @@ app.get('/api/customers', async (req, res) => {
 });
 
 // Tambah routing ke file manager
-const fileManagerRouter = require('./filemanager');
 app.use('/api/files', fileManagerRouter);

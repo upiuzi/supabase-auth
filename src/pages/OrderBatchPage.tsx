@@ -78,7 +78,7 @@ const OrderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'shipment'>('orders');
   const [showBroadcastConfirm, setShowBroadcastConfirm] = useState(false);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
-  // const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
+  const [waSessions, setWaSessions] = useState<{ session_id: string; status: string }[]>([]);
   const [broadcastBatchData, setBroadcastBatchData] = useState<{
     payment_status: string;
     total: string;
@@ -134,9 +134,15 @@ const OrderPage: React.FC = () => {
   }, [showBroadcastConfirm]);
 
   useEffect(() => {
-    const selectedBatch = batches.find((b) => b.id === formData.batch_id);
-    setBatchLabel(selectedBatch ? `${selectedBatch.batch_id}${selectedBatch.name ? ' - ' + selectedBatch.name : ''}` : '');
+    setBatchLabel(batches.find((b) => b.id === formData.batch_id)?.batch_id || '');
   }, [formData.batch_id, batches]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/whatsapp/sessions`)
+      .then(res => res.json())
+      .then(data => setWaSessions(data))
+      .catch(() => setWaSessions([]));
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -614,7 +620,8 @@ const OrderPage: React.FC = () => {
   };
 
   // --- SUMMARY SECTION: TotalQtySection ---
-  const selectedBatch = batches.find((b) => b.id === formData.batch_id);
+  // Hapus deklarasi selectedBatch yang tidak terpakai
+  // const selectedBatch = batches.find((b) => b.id === formData.batch_id);
 
   return (
     <div className="min-h-screen bg-white text-gray-900" style={{backgroundColor: '#f3f4f6'}}>
@@ -959,7 +966,7 @@ const OrderPage: React.FC = () => {
           onClose={() => setShowBroadcastConfirm(false)}
           onSend={handleBroadcastBatch}
           loading={broadcastLoading}
-          sessions={[]}        
+          sessions={waSessions}
         />
       </div>
     </div>

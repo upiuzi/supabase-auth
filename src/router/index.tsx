@@ -28,6 +28,7 @@ import WhatsappSettingPage from "../pages/WhatsappSettingPage.tsx";
 import HistoryCustomerPage from "../pages/HistoryCustomerPage.tsx";
 import CustomerDetailPage from "../pages/CustomerDetailPage.tsx";
 import CustomerMapPage from "../pages/CustomerMapPage.tsx";
+import FileManagerPage from "../pages/FileManagerPage.tsx";
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -144,6 +145,10 @@ const router = createBrowserRouter([
           {
             path: "/history-customer",
             element: <HistoryCustomerPage />,
+          },
+          {
+            path: "/file-manager",
+            element: <FileManagerPage />,
           },
         ],
       },
