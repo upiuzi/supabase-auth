@@ -41,7 +41,6 @@ const ReportSales = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showDetail, setShowDetail] = useState(false);
   const [detailData, setDetailData] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -55,7 +54,6 @@ const ReportSales = () => {
         getBatches(),
         getCustomers()
       ]);
-      setCustomers(customersData);
       const salesData = calculateMonthlySales(productsData, batchesData);
       setMonthlyData(salesData);
       setDetailData(calculateDetailData(productsData, batchesData, customersData));
